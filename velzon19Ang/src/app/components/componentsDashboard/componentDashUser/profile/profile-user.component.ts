@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-profile-user',
@@ -7,11 +8,12 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ProfileUserComponent implements OnInit {
 
-  editMode = false;
+  editMode    = false;
   passwordMode = false;
   saveSuccess = false;
-  pwdSuccess = false;
-  pwdError = '';
+  pwdSuccess  = false;
+  pwdError    = '';
+  loading     = true;
 
   breadcrumbItems = [
     { label: 'Mon Espace' },
@@ -19,37 +21,69 @@ export class ProfileUserComponent implements OnInit {
   ];
 
   profile = {
-    firstName: 'Sami',
-    lastName: 'Khiari',
-    email: 'sami.khiari@gmail.com',
-    phone: '+216 98 123 456',
-    address: '12 Rue de la République',
-    city: 'Tunis',
-    postalCode: '1000',
-    country: 'Tunisie',
-    birthDate: '1995-06-15',
-    gender: 'Homme',
-    newsletter: true,
+    firstName:    '',
+    lastName:     '',
+    email:        '',
+    phone:        '',
+    address:      '',
+    city:         '',
+    postalCode:   '',
+    country:      'Tunisie',
+    birthDate:    '',
+    gender:       '',
+    newsletter:   true,
     notifications: true,
   };
 
   editData = { ...this.profile };
-
   passwords = { current: '', newPwd: '', confirm: '' };
   showCurrent = false;
-  showNew = false;
+  showNew     = false;
 
   stats = [
-    { label: 'Commandes',       value: '12',  icon: 'ri-shopping-bag-3-line',    color: 'primary' },
-    { label: 'Commandes livrées', value: '9', icon: 'ri-check-double-line',      color: 'success' },
-    { label: 'Points fidélité', value: '480', icon: 'ri-medal-line',             color: 'warning' },
-    { label: 'Réclamations',    value: '2',   icon: 'ri-customer-service-2-line', color: 'danger'  },
+    { label: 'Commandes',         value: '0',  icon: 'ri-shopping-bag-3-line',     color: 'primary' },
+    { label: 'Commandes livrées', value: '0',  icon: 'ri-check-double-line',        color: 'success' },
+    { label: 'Points fidélité',   value: '0',  icon: 'ri-medal-line',               color: 'warning' },
+    { label: 'Réclamations',      value: '0',  icon: 'ri-customer-service-2-line',  color: 'danger'  },
   ];
 
-  ngOnInit(): void {}
+  constructor(private api: TijaraApiService) {}
+
+  ngOnInit(): void {
+    // Charger depuis sessionStorage d'abord (rapide)
+    try {
+      const raw = sessionStorage.getItem('currentUser');
+      if (raw) {
+        const user = JSON.parse(raw);
+        this.profile.firstName = user.firstName || user.first_name || '';
+        this.profile.lastName  = user.lastName  || user.last_name  || '';
+        this.profile.email     = user.email || '';
+        this.profile.phone     = user.phone || '';
+        this.profile.city      = user.city  || '';
+        this.editData = { ...this.profile };
+        this.loading = false;
+      }
+    } catch {}
+
+    // Charger depuis le vrai backend (fraîches)
+    this.api.getMe().subscribe({
+      next: (user: any) => {
+        this.profile.firstName = user.first_name || user.firstName || '';
+        this.profile.lastName  = user.last_name  || user.lastName  || '';
+        this.profile.email     = user.email  || '';
+        this.profile.phone     = user.phone  || '';
+        this.profile.city      = user.city   || '';
+        this.editData = { ...this.profile };
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
+  }
 
   get initials(): string {
-    return `${this.profile.firstName[0]}${this.profile.lastName[0]}`;
+    const f = this.profile.firstName?.[0] || '?';
+    const l = this.profile.lastName?.[0]  || '';
+    return `${f}${l}`.toUpperCase();
   }
 
   startEdit(): void {
@@ -58,9 +92,7 @@ export class ProfileUserComponent implements OnInit {
     this.saveSuccess = false;
   }
 
-  cancelEdit(): void {
-    this.editMode = false;
-  }
+  cancelEdit(): void { this.editMode = false; }
 
   saveProfile(): void {
     this.profile = { ...this.editData };
@@ -72,20 +104,17 @@ export class ProfileUserComponent implements OnInit {
   savePassword(): void {
     this.pwdError = '';
     if (!this.passwords.current) {
-      this.pwdError = 'Veuillez saisir votre mot de passe actuel.';
-      return;
+      this.pwdError = 'Veuillez saisir votre mot de passe actuel.'; return;
     }
-    if (this.passwords.newPwd.length < 8) {
-      this.pwdError = 'Le nouveau mot de passe doit comporter au moins 8 caractères.';
-      return;
+    if (this.passwords.newPwd.length < 6) {
+      this.pwdError = 'Le nouveau mot de passe doit comporter au moins 6 caractères.'; return;
     }
     if (this.passwords.newPwd !== this.passwords.confirm) {
-      this.pwdError = 'Les mots de passe ne correspondent pas.';
-      return;
+      this.pwdError = 'Les mots de passe ne correspondent pas.'; return;
     }
-    this.pwdSuccess = true;
+    this.pwdSuccess  = true;
     this.passwordMode = false;
-    this.passwords = { current: '', newPwd: '', confirm: '' };
+    this.passwords   = { current: '', newPwd: '', confirm: '' };
     setTimeout(() => (this.pwdSuccess = false), 3500);
   }
 }

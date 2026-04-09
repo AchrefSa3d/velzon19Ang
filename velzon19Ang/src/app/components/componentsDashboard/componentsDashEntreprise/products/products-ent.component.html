@@ -74,14 +74,14 @@
           </div>
           <div class="col-md-6">
             <label class="form-label fw-medium">Catégorie <span class="text-danger">*</span></label>
-            <select class="form-select" formControlName="category"
-                    [class.is-invalid]="f['category'].invalid && f['category'].touched">
+            <select class="form-select" formControlName="category_id"
+                    [class.is-invalid]="f['category_id'].invalid && f['category_id'].touched">
               <option value="">-- Choisir une catégorie --</option>
-              @for (cat of categories; track cat) {
-                <option [value]="cat">{{ cat }}</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
               }
             </select>
-            @if (f['category'].invalid && f['category'].touched) {
+            @if (f['category_id'].invalid && f['category_id'].touched) {
               <div class="invalid-feedback">Catégorie obligatoire.</div>
             }
           </div>
@@ -113,10 +113,53 @@
               <option value="inactif">Inactif — Masqué</option>
             </select>
           </div>
+          <!-- Photo du produit -->
+          <div class="col-12">
+            <label class="form-label fw-medium">Photo du produit</label>
+            <div class="d-flex align-items-start gap-3">
+              <!-- Aperçu image -->
+              <div class="border rounded-3 d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0"
+                   style="width:100px;height:100px;background:#f8f9fa">
+                @if (imagePreview) {
+                  <img [src]="imagePreview" style="width:100%;height:100%;object-fit:cover" alt="Aperçu">
+                } @else {
+                  <i class="ri-image-add-line fs-28 text-muted"></i>
+                }
+              </div>
+              <!-- Zone upload -->
+              <div class="flex-fill">
+                <label for="productImage"
+                       class="d-block border rounded-3 p-3 text-center"
+                       style="cursor:pointer;border-style:dashed!important;border-color:#405189!important">
+                  <i class="ri-upload-cloud-2-line fs-24 text-primary mb-1 d-block"></i>
+                  <span class="fs-13 text-muted">Cliquez pour choisir une image</span><br>
+                  <span class="fs-11 text-muted">JPG, PNG, WEBP — Max 2 MB</span>
+                </label>
+                <input type="file" id="productImage" class="d-none"
+                       accept="image/jpeg,image/png,image/webp"
+                       (change)="onImageSelected($event)">
+                @if (imagePreview) {
+                  <button type="button" class="btn btn-sm btn-soft-danger mt-2"
+                          (click)="removeImage()">
+                    <i class="ri-delete-bin-line me-1"></i>Supprimer la photo
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (saveError) {
+          <div class="col-12">
+            <div class="alert alert-danger py-2 fs-13">
+              <i class="ri-error-warning-line me-2"></i>{{ saveError }}
+            </div>
+          </div>
+          }
           <div class="col-12">
             <div class="d-flex gap-2 pt-2">
               <button type="submit" class="btn btn-primary px-4"
-                      [disabled]="productForm.invalid">
+                      [disabled]="productForm.invalid || saving">
+                @if (saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
                 <i class="ri-save-line me-1"></i>
                 {{ editMode ? 'Enregistrer les modifications' : 'Ajouter le produit' }}
               </button>
@@ -194,13 +237,31 @@
               <tr>
                 <td class="ps-4">
                   <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center justify-content-center"
-                         style="width:44px;height:44px;background:linear-gradient(135deg,#405189,#0ab39c);border-radius:10px;flex-shrink:0">
-                      <i class="ri-box-3-line text-white fs-18"></i>
-                    </div>
+                    <div class="overflow-hidden d-flex align-items-center justify-content-center"
+                       style="width:44px;height:44px;border-radius:10px;flex-shrink:0;background:#f0f1f5">
+                    @if (p.image && p.image !== 'assets/images/products/img-1.png') {
+                      <img [src]="p.image" style="width:100%;height:100%;object-fit:cover" alt="">
+                    } @else {
+                      <i class="ri-box-3-line text-muted fs-20"></i>
+                    }
+                  </div>
                     <div>
                       <div class="fw-semibold fs-14">{{ p.name }}</div>
-                      <div class="text-muted fs-12">ID #{{ p.id }}</div>
+                      <div class="mt-1">
+                        @if (p.approvalStatus === 'pending') {
+                          <span class="badge bg-warning-subtle text-warning fs-11">
+                            <i class="ri-time-line me-1"></i>En attente admin
+                          </span>
+                        } @else if (p.approvalStatus === 'rejected') {
+                          <span class="badge bg-danger-subtle text-danger fs-11">
+                            <i class="ri-close-circle-line me-1"></i>Rejeté
+                          </span>
+                        } @else {
+                          <span class="badge bg-success-subtle text-success fs-11">
+                            <i class="ri-checkbox-circle-line me-1"></i>Approuvé
+                          </span>
+                        }
+                      </div>
                     </div>
                   </div>
                 </td>

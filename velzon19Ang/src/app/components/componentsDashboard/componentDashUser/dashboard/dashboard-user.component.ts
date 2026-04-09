@@ -1,13 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-
-interface RecentOrder {
-  id: string;
-  date: string;
-  vendor: string;
-  items: string;
-  total: number;
-  status: string;
-}
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-dashboard-user',
@@ -16,8 +8,12 @@ interface RecentOrder {
 })
 export class DashboardUserComponent implements OnInit {
 
-  userName = 'Sami';
+  userName = '';
   today = new Date();
+
+  totalOrders    = 0;
+  deliveredOrders = 0;
+  reclamationsCount = 0;
 
   breadcrumbItems = [
     { label: 'Mon Espace' },
@@ -25,30 +21,78 @@ export class DashboardUserComponent implements OnInit {
   ];
 
   stats = [
-    { icon: 'ri-shopping-bag-3-line', label: 'Total Commandes', value: '12', color: 'primary' },
-    { icon: 'ri-check-double-line', label: 'Commandes livrées', value: '9', color: 'success' },
-    { icon: 'ri-heart-3-line', label: 'Liste de souhaits', value: '5', color: 'danger' },
-    { icon: 'ri-customer-service-2-line', label: 'Réclamations', value: '2', color: 'warning' },
+    { icon: 'ri-shopping-bag-3-line',     label: 'Total Commandes',   value: '0', color: 'primary' },
+    { icon: 'ri-check-double-line',        label: 'Commandes livrées', value: '0', color: 'success' },
+    { icon: 'ri-heart-3-line',             label: 'Liste de souhaits', value: '0', color: 'danger'  },
+    { icon: 'ri-customer-service-2-line',  label: 'Réclamations',      value: '0', color: 'warning' },
   ];
 
-  recentOrders: RecentOrder[] = [
-    { id: 'TJR-045', date: '28/03/2026', vendor: 'TechTunis',     items: 'Écouteurs Bluetooth Pro',   total: 89,  status: 'Expédiée'  },
-    { id: 'TJR-038', date: '21/03/2026', vendor: 'SportZone',     items: 'Chaussures Running X3',     total: 145, status: 'Livrée'    },
-    { id: 'TJR-031', date: '14/03/2026', vendor: 'ModeTN',        items: 'T-shirt + Jean Slim Fit',   total: 112, status: 'Livrée'    },
-    { id: 'TJR-024', date: '06/03/2026', vendor: 'NatureCare',    items: 'Huile d\'Argan Bio 100ml',  total: 38,  status: 'Annulée'   },
-    { id: 'TJR-017', date: '27/02/2026', vendor: 'MaisonDeco',    items: 'Cafetière Italienne Inox',  total: 110, status: 'Livrée'    },
-  ];
+  recentOrders: any[] = [];
 
   categories = [
-    { icon: 'ri-computer-line',    label: 'Électronique', color: 'primary',   count: '4 120' },
-    { icon: 'ri-t-shirt-line',     label: 'Mode',         color: 'info',      count: '2 890' },
-    { icon: 'ri-run-line',         label: 'Sport',        color: 'success',   count: '1 560' },
-    { icon: 'ri-home-2-line',      label: 'Maison',       color: 'warning',   count: '980'   },
-    { icon: 'ri-leaf-line',        label: 'Bien-être',    color: 'danger',    count: '740'   },
-    { icon: 'ri-restaurant-line',  label: 'Alimentation', color: 'secondary', count: '620'   },
+    { icon: 'ri-computer-line',   label: 'Électronique', color: 'primary',   count: '—' },
+    { icon: 'ri-t-shirt-line',    label: 'Mode',         color: 'info',      count: '—' },
+    { icon: 'ri-run-line',        label: 'Sport',        color: 'success',   count: '—' },
+    { icon: 'ri-home-2-line',     label: 'Maison',       color: 'warning',   count: '—' },
+    { icon: 'ri-leaf-line',       label: 'Bien-être',    color: 'danger',    count: '—' },
+    { icon: 'ri-restaurant-line', label: 'Alimentation', color: 'secondary', count: '—' },
   ];
 
-  ngOnInit(): void {}
+  constructor(private api: TijaraApiService) {}
+
+  ngOnInit(): void {
+    // Nom depuis sessionStorage (instantané)
+    const stored = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+    this.userName = stored.firstName || stored.email || 'Utilisateur';
+
+    // Commandes réelles
+    this.api.getOrders().subscribe({
+      next: (data: any[]) => {
+        this.totalOrders     = data.length;
+        this.deliveredOrders = data.filter(o => o.status === 'delivered').length;
+
+        this.stats[0].value = String(this.totalOrders);
+        this.stats[1].value = String(this.deliveredOrders);
+
+        this.recentOrders = data.slice(0, 5).map(o => ({
+          id:     `#${o.id}`,
+          date:   new Date(o.created_at).toLocaleDateString('fr-FR'),
+          vendor: 'Tijara',
+          items:  '—',
+          total:  o.total_amount || 0,
+          status: this.mapStatus(o.status),
+        }));
+      }
+    });
+
+    // Réclamations réelles
+    this.api.getReclamations().subscribe({
+      next: (data: any[]) => {
+        this.reclamationsCount = data.length;
+        this.stats[3].value    = String(data.length);
+      }
+    });
+
+    // Catégories depuis l'API
+    this.api.getCategories().subscribe({
+      next: (data: any[]) => {
+        data.slice(0, 6).forEach((cat, i) => {
+          if (this.categories[i]) {
+            this.categories[i].label = cat.name;
+            this.categories[i].count = String(cat.product_count || 0);
+          }
+        });
+      }
+    });
+  }
+
+  private mapStatus(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'En attente', confirmed: 'Confirmée',
+      shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée'
+    };
+    return map[s] || s;
+  }
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {

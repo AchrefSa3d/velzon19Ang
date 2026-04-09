@@ -14,14 +14,18 @@ import { UsersAdminComponent }        from './users-admin/users-admin.component'
 import { CategoriesAdminComponent }   from './categories-admin/categories-admin.component';
 import { OrdersAdminComponent }       from './orders-admin/orders-admin.component';
 import { VendorsAdminComponent }      from './vendors-admin/vendors-admin.component';
+import { AnnoncesAdminComponent }     from './annonces-admin/annonces-admin.component';
+import { ProductsAdminComponent }     from './products-admin/products-admin.component';
 
 const routes: Routes = [
-  { path: '',           redirectTo: 'dashboard', pathMatch: 'full' },
-  { path: 'dashboard',  component: DashboardAdminComponent },
-  { path: 'users',      component: UsersAdminComponent },
-  { path: 'categories', component: CategoriesAdminComponent },
-  { path: 'orders',     component: OrdersAdminComponent },
-  { path: 'vendors',    component: VendorsAdminComponent },
+  { path: '',              redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: 'dashboard',     component: DashboardAdminComponent },
+  { path: 'users',         component: UsersAdminComponent },
+  { path: 'categories',    component: CategoriesAdminComponent },
+  { path: 'orders',        component: OrdersAdminComponent },
+  { path: 'vendors',       component: VendorsAdminComponent },
+  { path: 'annonces',      component: AnnoncesAdminComponent },
+  { path: 'products',      component: ProductsAdminComponent },
   {
     path: 'reclamations',
     loadChildren: () => import('./reclamations/reclamations.module').then(m => m.ReclamationsModule),
@@ -35,6 +39,8 @@ const routes: Routes = [
     CategoriesAdminComponent,
     OrdersAdminComponent,
     VendorsAdminComponent,
+    AnnoncesAdminComponent,
+    ProductsAdminComponent,
   ],
   imports: [
     CommonModule,

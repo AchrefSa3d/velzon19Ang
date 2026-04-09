@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-vendors-admin',
@@ -13,41 +14,78 @@ export class VendorsAdminComponent implements OnInit {
     { label: 'Gestion Vendeurs', active: true }
   ];
 
-  filterStatus = 'tous';
-  searchTerm = '';
+  filterStatus  = 'tous';
+  searchTerm    = '';
+  loading       = true;
 
-  allVendors = [
-    { id: 1, shop: 'TechTunis',    owner: 'Achraf Saad',     email: 'vendor@tijara.tn',  category: 'Électronique', ville: 'Tunis',    orders: 48, revenue: 18400, status: 'actif',      joined: '05/01/2026', avatar: 'AS' },
-    { id: 2, shop: 'ModeTN',       owner: 'Aziz Tarchoun',   email: 'aziz@tijara.tn',    category: 'Mode',         ville: 'Sfax',     orders: 31, revenue: 9500,  status: 'actif',      joined: '08/01/2026', avatar: 'AZ' },
-    { id: 3, shop: 'SportZone',    owner: 'Ghaith Slimi',    email: 'ghaith@tijara.tn',  category: 'Sport',        ville: 'Sousse',   orders: 0,  revenue: 0,     status: 'en attente', joined: '25/03/2026', avatar: 'GS' },
-    { id: 4, shop: 'MaisonDeco',   owner: 'Amine Touati',    email: 'amine@tijara.tn',   category: 'Maison',       ville: 'Monastir', orders: 19, revenue: 6200,  status: 'actif',      joined: '12/02/2026', avatar: 'AM' },
-    { id: 5, shop: 'NatureCare',   owner: 'Nour Hammami',    email: 'nour@tijara.tn',    category: 'Beauté',       ville: 'Nabeul',   orders: 25, revenue: 4100,  status: 'actif',      joined: '20/02/2026', avatar: 'NH' },
-    { id: 6, shop: 'TechSousse',   owner: 'Sami Cherif',     email: 'sami@tijara.tn',    category: 'Électronique', ville: 'Sousse',   orders: 0,  revenue: 0,     status: 'en attente', joined: '28/03/2026', avatar: 'SC' },
-    { id: 7, shop: 'FashionTN',    owner: 'Rania Gharbi',    email: 'rania@tijara.tn',   category: 'Mode',         ville: 'Ariana',   orders: 0,  revenue: 0,     status: 'en attente', joined: '27/03/2026', avatar: 'RG' },
-    { id: 8, shop: 'KidsWorld',    owner: 'Youssef Maatoug', email: 'youssef@tijara.tn', category: 'Jouets',       ville: 'Bizerte',  orders: 8,  revenue: 1800,  status: 'suspendu',   joined: '15/02/2026', avatar: 'YM' },
-  ];
-
+  allVendors: any[]      = [];
   filteredVendors: any[] = [];
 
-  ngOnInit(): void { this.applyFilter(); }
+  constructor(private api: TijaraApiService) {}
 
-  applyFilter() {
+  ngOnInit(): void { this.loadVendors(); }
+
+  loadVendors(): void {
+    this.loading = true;
+    this.api.getAllVendors().subscribe({
+      next: (data: any[]) => {
+        this.allVendors = data.map(v => ({
+          id:     v.id,
+          owner:  `${v.first_name || ''} ${v.last_name || ''}`.trim(),
+          email:  v.email,
+          phone:  v.phone || '-',
+          ville:  v.city  || '-',
+          status: !v.is_active  ? 'suspendu'
+                : !v.is_approved ? 'en attente'
+                : 'actif',
+          joined: new Date(v.created_at).toLocaleDateString('fr-FR'),
+          avatar: `${v.first_name?.[0] || ''}${v.last_name?.[0] || ''}`.toUpperCase(),
+        }));
+        this.loading = false;
+        this.applyFilter();
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  applyFilter(): void {
     let list = [...this.allVendors];
-    if (this.filterStatus !== 'tous') list = list.filter(v => v.status === this.filterStatus);
+    if (this.filterStatus !== 'tous')
+      list = list.filter(v => v.status === this.filterStatus);
     if (this.searchTerm.trim()) {
       const t = this.searchTerm.toLowerCase();
       list = list.filter(v =>
-        v.shop.toLowerCase().includes(t) ||
         v.owner.toLowerCase().includes(t) ||
-        v.email.toLowerCase().includes(t)
+        v.email.toLowerCase().includes(t) ||
+        v.ville.toLowerCase().includes(t)
       );
     }
     this.filteredVendors = list;
   }
 
-  approve(vendor: any) { vendor.status = 'actif'; this.applyFilter(); }
-  reject(vendor: any)  { vendor.status = 'suspendu'; this.applyFilter(); }
-  suspend(vendor: any) { vendor.status = vendor.status === 'actif' ? 'suspendu' : 'actif'; this.applyFilter(); }
+  approve(vendor: any): void {
+    this.api.approveVendor(vendor.id).subscribe({
+      next: () => {
+        vendor.status = 'actif';
+        this.applyFilter();
+      }
+    });
+  }
+
+  reject(vendor: any): void {
+    if (!confirm(`Rejeter le compte de ${vendor.owner} ?`)) return;
+    this.api.rejectVendor(vendor.id, 'Demande refusée par l\'administrateur.').subscribe({
+      next: () => {
+        this.allVendors = this.allVendors.filter(v => v.id !== vendor.id);
+        this.applyFilter();
+      }
+    });
+  }
+
+  suspend(vendor: any): void {
+    vendor.status = vendor.status === 'actif' ? 'suspendu' : 'actif';
+    this.applyFilter();
+  }
 
   getStatusBadge(status: string): string {
     switch (status) {

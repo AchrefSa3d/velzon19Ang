@@ -4,6 +4,7 @@ import {
   ApexStroke, ApexTooltip, ApexFill, ApexNonAxisChartSeries,
   ApexPlotOptions, ApexLegend
 } from 'ng-apexcharts';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-dashboard-ent',
@@ -18,35 +19,21 @@ export class DashboardEntComponent implements OnInit {
     { label: 'Tableau de bord', active: true }
   ];
 
-  vendorName = 'Achraf Saad';
-  shopName   = 'TechTunis';
+  vendorName = '';
+  shopName   = '';
 
   stats = [
-    { label: 'Commandes du mois',  value: 48,         icon: 'ri-shopping-bag-3-line',      color: 'primary', trend: '+8%'  },
-    { label: 'Revenus du mois',    value: '4 800 DT',  icon: 'ri-money-dollar-circle-line', color: 'success', trend: '+15%' },
-    { label: 'Produits en ligne',  value: 12,         icon: 'ri-store-2-line',              color: 'info',    trend: '+2%'  },
-    { label: 'Clients satisfaits', value: '94%',      icon: 'ri-star-line',                 color: 'warning', trend: '+3%'  },
+    { label: 'Commandes du mois',  value: 0,    icon: 'ri-shopping-bag-3-line',      color: 'primary', trend: '' },
+    { label: 'Revenus du mois',    value: '0 DT', icon: 'ri-money-dollar-circle-line', color: 'success', trend: '' },
+    { label: 'Produits en ligne',  value: 0,    icon: 'ri-store-2-line',              color: 'info',    trend: '' },
+    { label: 'Réclamations ouvertes', value: 0, icon: 'ri-message-3-line',            color: 'warning', trend: '' },
   ];
 
-  recentOrders: any[] = [
-    { id: 'TJR-001', client: 'Amine Touati',    product: 'Écouteurs Bluetooth Pro', total: 130,  status: 'En attente', date: '29/03/2026' },
-    { id: 'TJR-003', client: 'Ghaith Slimi',    product: 'Smartphone 128GB',        total: 750,  status: 'Livrée',     date: '27/03/2026' },
-    { id: 'TJR-006', client: 'Ines Karray',     product: 'Montre Connectée Sport',  total: 250,  status: 'Confirmée',  date: '24/03/2026' },
-    { id: 'TJR-009', client: 'Maroua Ben Salah',product: 'Smartphone 128GB',        total: 750,  status: 'Livrée',     date: '20/03/2026' },
-    { id: 'TJR-012', client: 'Sami Cherif',     product: 'Tablette Éducative',      total: 150,  status: 'Confirmée',  date: '18/03/2026' },
-  ];
-
-  topProducts = [
-    { name: 'Smartphone 128GB',       sales: 18, revenue: 13500, progress: 90 },
-    { name: 'Montre Connectée Sport', sales: 14, revenue: 3500,  progress: 70 },
-    { name: 'Écouteurs Bluetooth',    sales: 11, revenue: 1430,  progress: 55 },
-    { name: 'Tablette Éducative',     sales: 5,  revenue: 750,   progress: 25 },
-  ];
+  recentOrders: any[] = [];
+  topProducts: any[] = [];
 
   areaSeries: ApexAxisChartSeries = [{
-    name: 'Commandes', data: [4, 7, 5, 9, 8, 12, 11, 15, 13, 18, 16, 20]
-  }, {
-    name: 'Revenus (K DT)', data: [0.5, 1, 0.7, 1.4, 1.2, 1.8, 1.6, 2.2, 2, 2.8, 2.4, 3]
+    name: 'Commandes', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   }];
 
   areaChart: ApexChart = { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } };
@@ -59,28 +46,67 @@ export class DashboardEntComponent implements OnInit {
   areaDataLabels: ApexDataLabels = { enabled: false };
   areaTooltip: ApexTooltip = { x: { format: 'MMM' } };
 
-  donutSeries: ApexNonAxisChartSeries = [40, 30, 18, 12];
+  donutSeries: ApexNonAxisChartSeries = [1];
   donutChart: ApexChart = { type: 'donut', height: 240 };
-  donutLabels = ['Smartphones', 'Montres', 'Écouteurs', 'Tablettes'];
+  donutLabels = ['Chargement...'];
   donutLegend: ApexLegend = { position: 'bottom' };
   donutPlotOptions: ApexPlotOptions = { pie: { donut: { size: '65%' } } };
 
+  constructor(private api: TijaraApiService) {}
+
   ngOnInit(): void {
     const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-    if (user.firstName) this.vendorName = user.firstName + ' ' + (user.lastName || '');
-    if (user.shopName)  this.shopName   = user.shopName;
+    this.vendorName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Vendeur';
+    this.shopName   = user.shopName || this.vendorName;
 
-    const stored = JSON.parse(sessionStorage.getItem('tijara_orders') || '[]');
-    stored.slice(0, 3).forEach((o: any) => {
-      this.recentOrders.unshift({
-        id:      o.orderNumber,
-        client:  (o.address?.firstName || '') + ' ' + (o.address?.lastName || ''),
-        product: o.items?.[0]?.product?.name || 'Produit',
-        total:   o.total,
-        status:  o.status,
-        date:    o.date,
-      });
+    this.api.getOrders().subscribe({
+      next: (data: any[]) => {
+        const total  = data.length;
+        const revenue = data.filter(o => o.status === 'delivered').reduce((s, o) => s + (o.total_amount || 0), 0);
+        this.stats[0].value = total;
+        this.stats[1].value = revenue.toLocaleString('fr-FR') + ' DT';
+
+        this.recentOrders = data.slice(0, 5).map(o => ({
+          id:      `#${o.id}`,
+          client:  o.client_name || o.email || 'Client',
+          product: '—',
+          total:   o.total_amount || 0,
+          status:  this.mapStatus(o.status),
+          date:    new Date(o.created_at).toLocaleDateString('fr-FR'),
+        }));
+      }
     });
+
+    this.api.getMyProducts().subscribe({
+      next: (data: any[]) => {
+        const active = data.filter(p => p.is_active);
+        this.stats[2].value = active.length;
+        this.topProducts = active.slice(0, 4).map((p, i) => ({
+          name:     p.name,
+          sales:    0,
+          revenue:  0,
+          progress: Math.max(10, 100 - i * 20),
+        }));
+        if (active.length > 0) {
+          this.donutSeries = active.slice(0, 4).map(() => 1);
+          this.donutLabels = active.slice(0, 4).map(p => p.name);
+        }
+      }
+    });
+
+    this.api.getReclamations().subscribe({
+      next: (data: any[]) => {
+        this.stats[3].value = data.filter(r => r.status === 'open').length;
+      }
+    });
+  }
+
+  private mapStatus(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'En attente', confirmed: 'Confirmée',
+      shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée'
+    };
+    return map[s] || s;
   }
 
   getStatusClass(status: string): string {

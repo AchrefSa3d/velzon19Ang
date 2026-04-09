@@ -108,7 +108,7 @@ if (environment.defaultauth === 'firebase') {
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: FakeBackendInterceptor, multi: true },
+    // FakeBackendInterceptor supprimé — connexion au vrai backend Node.js
     provideHttpClient(withInterceptorsFromDi()),
   ]
 })

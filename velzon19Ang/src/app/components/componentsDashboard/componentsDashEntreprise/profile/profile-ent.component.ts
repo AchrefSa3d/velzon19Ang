@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-profile-ent',
@@ -39,21 +40,34 @@ export class ProfileEntComponent implements OnInit {
     { label: 'Membre depuis',     value: 'Jan 2026', icon: 'ri-calendar-check-line', color: 'info'    },
   ];
 
-  constructor(private fb: FormBuilder) {}
+  constructor(private fb: FormBuilder, private api: TijaraApiService) {}
 
   ngOnInit(): void {
     const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
 
     this.profileForm = this.fb.group({
-      firstName:   [user.firstName || '',  [Validators.required]],
-      lastName:    [user.lastName  || '',  [Validators.required]],
+      firstName:   [user.firstName || user.first_name || '',  [Validators.required]],
+      lastName:    [user.lastName  || user.last_name  || '',  [Validators.required]],
       email:       [user.email     || '',  [Validators.required, Validators.email]],
-      phone:       ['25123456',            [Validators.required, Validators.pattern(/^[2459]\d{7}$/)]],
-      shopName:    ['Ma Boutique Tijara',    [Validators.required, Validators.minLength(3)]],
-      category:    ['Électronique',        Validators.required],
-      wilaya:      ['Tunis',               Validators.required],
-      description: ['Boutique spécialisée en produits électroniques de qualité. Livraison rapide partout en Tunisie.'],
+      phone:       [user.phone     || '',  [Validators.required, Validators.pattern(/^[2459]\d{7}$/)]],
+      shopName:    ['', [Validators.required, Validators.minLength(3)]],
+      category:    ['', Validators.required],
+      wilaya:      [user.city || '', Validators.required],
+      description: [''],
       website:     [''],
+    });
+
+    // Charger depuis le vrai backend
+    this.api.getMe().subscribe({
+      next: (u: any) => {
+        this.profileForm.patchValue({
+          firstName: u.first_name || u.firstName || '',
+          lastName:  u.last_name  || u.lastName  || '',
+          email:     u.email || '',
+          phone:     u.phone || '',
+          wilaya:    u.city  || '',
+        });
+      }
     });
 
     this.passwordForm = this.fb.group({

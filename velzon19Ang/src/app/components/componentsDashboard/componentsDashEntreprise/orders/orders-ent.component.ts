@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-orders-ent',
@@ -16,33 +17,51 @@ export class OrdersEntComponent implements OnInit {
   searchTerm = '';
   filterStatus = 'tous';
   statuses = ['En attente', 'Confirmée', 'Livrée', 'Annulée'];
+  loading = true;
 
-  allOrders: any[] = [
-    { id: 'TJR-001', client: 'Amine Touati',     ville: 'Tunis',    product: 'Écouteurs Bluetooth Pro', total: 130,  status: 'En attente', date: '29/03/2026' },
-    { id: 'TJR-003', client: 'Ghaith Slimi',     ville: 'Sousse',   product: 'Smartphone 128GB',        total: 750,  status: 'Livrée',     date: '27/03/2026' },
-    { id: 'TJR-006', client: 'Ines Karray',      ville: 'Monastir', product: 'Montre Connectée Sport',  total: 250,  status: 'Confirmée',  date: '24/03/2026' },
-    { id: 'TJR-009', client: 'Maroua Ben Salah', ville: 'Sfax',     product: 'Smartphone 128GB',        total: 750,  status: 'Livrée',     date: '20/03/2026' },
-    { id: 'TJR-012', client: 'Sami Cherif',      ville: 'Bizerte',  product: 'Tablette Éducative',      total: 150,  status: 'Confirmée',  date: '18/03/2026' },
-    { id: 'TJR-015', client: 'Youssef Maatoug',  ville: 'Kairouan', product: 'Écouteurs Bluetooth Pro', total: 130,  status: 'Annulée',    date: '15/03/2026' },
-  ];
-
+  allOrders: any[] = [];
   filteredOrders: any[] = [];
   selectedOrder: any = null;
 
-  ngOnInit(): void {
-    const stored = JSON.parse(sessionStorage.getItem('tijara_orders') || '[]');
-    stored.forEach((o: any) => {
-      this.allOrders.unshift({
-        id:      o.orderNumber,
-        client:  (o.address?.firstName || '') + ' ' + (o.address?.lastName || ''),
-        ville:   o.address?.ville || o.address?.wilaya || '',
-        product: o.items?.[0]?.product?.name || 'Produit',
-        total:   o.total,
-        status:  o.status,
-        date:    o.date,
-      });
+  constructor(private api: TijaraApiService) {}
+
+  ngOnInit(): void { this.loadOrders(); }
+
+  loadOrders(): void {
+    this.loading = true;
+    this.api.getOrders().subscribe({
+      next: (data: any[]) => {
+        this.allOrders = data.map(o => ({
+          id:      o.id,
+          client:  o.client_name || o.email || 'Client',
+          ville:   o.shipping_address || '—',
+          product: '—',
+          total:   o.total_amount || 0,
+          status:  this.mapStatus(o.status),
+          date:    new Date(o.created_at).toLocaleDateString('fr-FR'),
+          apiId:   o.id,
+        }));
+        this.loading = false;
+        this.applyFilter();
+      },
+      error: () => { this.loading = false; }
     });
-    this.applyFilter();
+  }
+
+  private mapStatus(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'En attente', confirmed: 'Confirmée',
+      shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée'
+    };
+    return map[s] || s;
+  }
+
+  private statusToApi(s: string): string {
+    const map: Record<string, string> = {
+      'En attente': 'pending', 'Confirmée': 'confirmed',
+      'Expédiée': 'shipped', 'Livrée': 'delivered', 'Annulée': 'cancelled'
+    };
+    return map[s] || s;
   }
 
   applyFilter() {
@@ -51,7 +70,7 @@ export class OrdersEntComponent implements OnInit {
     if (this.searchTerm.trim()) {
       const t = this.searchTerm.toLowerCase();
       list = list.filter(o =>
-        o.id.toLowerCase().includes(t) ||
+        String(o.id).includes(t) ||
         o.client.toLowerCase().includes(t) ||
         o.product.toLowerCase().includes(t)
       );
@@ -61,6 +80,7 @@ export class OrdersEntComponent implements OnInit {
 
   changeStatus(order: any, status: string) {
     order.status = status;
+    this.api.updateOrderStatus(order.apiId, this.statusToApi(status)).subscribe();
     this.applyFilter();
   }
 
@@ -68,6 +88,7 @@ export class OrdersEntComponent implements OnInit {
     switch (status) {
       case 'En attente': return 'bg-warning-subtle text-warning';
       case 'Confirmée':  return 'bg-info-subtle text-info';
+      case 'Expédiée':   return 'bg-primary-subtle text-primary';
       case 'Livrée':     return 'bg-success-subtle text-success';
       case 'Annulée':    return 'bg-danger-subtle text-danger';
       default:           return 'bg-secondary-subtle text-secondary';

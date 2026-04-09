@@ -1,15 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-
-interface Reclamation {
-  id: string;
-  user: string;
-  email: string;
-  role: string;
-  sujet: string;
-  message: string;
-  date: string;
-  statut: string;
-}
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-viewreclamations',
@@ -27,21 +17,56 @@ export class Viewreclamations implements OnInit {
   statuses = ['En attente', 'En cours', 'Résolue', 'Rejetée'];
   filterStatut = 'tous';
   searchTerm = '';
+  loading = true;
 
-  reclamations: Reclamation[] = [
-    { id: 'REC-001', user: 'Amine Touati',     email: 'user@tijara.tn',      role: 'Client',  sujet: 'Commande non reçue',       message: 'Ma commande TJR-028 n\'est pas arrivée après 7 jours.',          date: '29/03/2026', statut: 'En attente' },
-    { id: 'REC-002', user: 'Maroua Ben Salah', email: 'maroua@gmail.com',    role: 'Client',  sujet: 'Produit défectueux',        message: 'Le smartphone reçu a un écran fissuré dès l\'ouverture.',        date: '28/03/2026', statut: 'En cours'   },
-    { id: 'REC-003', user: 'Achraf Saad',      email: 'vendor@tijara.tn',    role: 'Vendeur', sujet: 'Problème de paiement',      message: 'Mon virement de mars 2026 n\'a pas été effectué.',               date: '27/03/2026', statut: 'Résolue'    },
-    { id: 'REC-004', user: 'Ghaith Slimi',     email: 'ghaith@gmail.com',    role: 'Client',  sujet: 'Remboursement en attente',  message: 'J\'ai annulé ma commande TJR-021 il y a 10 jours, pas de remb.', date: '26/03/2026', statut: 'En attente' },
-    { id: 'REC-005', user: 'Rania Gharbi',     email: 'rania@fashiontn.com', role: 'Vendeur', sujet: 'Compte suspendu sans raison',message: 'Mon compte a été suspendu sans notification préalable.',          date: '25/03/2026', statut: 'En cours'   },
-    { id: 'REC-006', user: 'Nour Hammami',     email: 'nour@gmail.com',      role: 'Client',  sujet: 'Mauvaise description produit',message: 'La taille indiquée ne correspond pas au produit reçu.',         date: '24/03/2026', statut: 'Rejetée'    },
-  ];
+  reclamations: any[] = [];
+  filteredReclamations: any[] = [];
+  selectedRec: any | null = null;
 
-  filteredReclamations: Reclamation[] = [];
-  selectedRec: Reclamation | null = null;
+  constructor(private api: TijaraApiService) {}
 
-  ngOnInit(): void {
-    this.applyFilter();
+  ngOnInit(): void { this.loadReclamations(); }
+
+  loadReclamations(): void {
+    this.loading = true;
+    this.api.getReclamations().subscribe({
+      next: (data: any[]) => {
+        this.reclamations = data.map(r => ({
+          id:      r.id,
+          user:    r.client_name || 'Utilisateur',
+          email:   r.email || '',
+          role:    r.user_role === 'vendor' ? 'Vendeur' : 'Client',
+          sujet:   r.subject,
+          message: r.description,
+          date:    new Date(r.created_at).toLocaleDateString('fr-FR'),
+          statut:  this.mapStatus(r.status),
+          apiId:   r.id,
+        }));
+        this.loading = false;
+        this.applyFilter();
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  private mapStatus(s: string): string {
+    switch (s) {
+      case 'open':        return 'En attente';
+      case 'in_progress': return 'En cours';
+      case 'resolved':    return 'Résolue';
+      case 'closed':      return 'Rejetée';
+      default:            return s;
+    }
+  }
+
+  private statusToApi(s: string): string {
+    switch (s) {
+      case 'En attente': return 'open';
+      case 'En cours':   return 'in_progress';
+      case 'Résolue':    return 'resolved';
+      case 'Rejetée':    return 'closed';
+      default:           return s;
+    }
   }
 
   applyFilter(): void {
@@ -50,23 +75,19 @@ export class Viewreclamations implements OnInit {
       const matchSearch = !this.searchTerm ||
         r.user.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         r.sujet.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        r.id.toLowerCase().includes(this.searchTerm.toLowerCase());
+        String(r.id).includes(this.searchTerm);
       return matchStatut && matchSearch;
     });
   }
 
-  changeStatut(rec: Reclamation, statut: string): void {
+  changeStatut(rec: any, statut: string): void {
     rec.statut = statut;
+    this.api.updateReclamation(rec.apiId, { status: this.statusToApi(statut) }).subscribe();
     this.applyFilter();
   }
 
-  showDetail(rec: Reclamation): void {
-    this.selectedRec = rec;
-  }
-
-  closeDetail(): void {
-    this.selectedRec = null;
-  }
+  showDetail(rec: any): void { this.selectedRec = rec; }
+  closeDetail(): void        { this.selectedRec = null; }
 
   getStatusClass(statut: string): string {
     switch (statut) {

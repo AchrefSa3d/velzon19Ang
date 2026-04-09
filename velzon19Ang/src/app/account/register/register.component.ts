@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthenticationService } from '../../core/services/auth.service';
-import { first } from 'rxjs/operators';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
     selector: 'app-register',
@@ -13,46 +12,78 @@ import { first } from 'rxjs/operators';
 export class RegisterComponent implements OnInit {
 
     signupForm!: UntypedFormGroup;
-    submitted = false;
-    error = '';
-    fieldTextType = false;
-    year: number = new Date().getFullYear();
+    submitted       = false;
+    loading         = false;
+    error           = '';
+    fieldTextType   = false;
+    pendingApproval = false;
+    year: number    = new Date().getFullYear();
 
     constructor(
-        private formBuilder: UntypedFormBuilder,
+        private fb: UntypedFormBuilder,
         private router: Router,
-        private authenticationService: AuthenticationService
+        private api: TijaraApiService
     ) {}
 
     ngOnInit(): void {
-        this.signupForm = this.formBuilder.group({
-            firstName: ['', [Validators.required]],
-            lastName:  ['', [Validators.required]],
-            email:     ['', [Validators.required, Validators.email]],
-            password:  ['', [Validators.required, Validators.minLength(8)]],
-            role:      ['user', [Validators.required]],
+        this.signupForm = this.fb.group({
+            role:          ['user'],
+            firstName:     ['', Validators.required],
+            lastName:      ['', Validators.required],
+            phone:         [''],
+            city:          [''],
+            shopName:      [''],
+            companyNumber: [''],
+            email:         ['', [Validators.required, Validators.email]],
+            password:      ['', [Validators.required, Validators.minLength(6)]],
         });
     }
 
     get f() { return this.signupForm.controls; }
 
-    toggleFieldTextType() {
-        this.fieldTextType = !this.fieldTextType;
+    setRole(role: string): void {
+        this.signupForm.patchValue({ role });
+        // Ajouter/retirer validation boutique selon le rôle
+        if (role === 'vendor') {
+            this.f['shopName'].setValidators(Validators.required);
+        } else {
+            this.f['shopName'].clearValidators();
+        }
+        this.f['shopName'].updateValueAndValidity();
     }
+
+    toggleFieldTextType() { this.fieldTextType = !this.fieldTextType; }
 
     onSubmit() {
         this.submitted = true;
+        this.error = '';
         if (this.signupForm.invalid) return;
 
-        this.authenticationService.register(
-            this.f['email'].value,
-            this.f['firstName'].value,
-            this.f['password'].value,
-            this.f['lastName'].value,
-            this.f['role'].value
-        ).pipe(first()).subscribe({
-            next: () => this.router.navigate(['/auth/login']),
-            error: (err: any) => this.error = err?.error?.message || 'Erreur lors de l\'inscription'
+        this.loading = true;
+
+        this.api.register({
+            firstName:     this.f['firstName'].value.trim(),
+            lastName:      this.f['lastName'].value.trim(),
+            email:         this.f['email'].value.trim().toLowerCase(),
+            phone:         this.f['phone'].value.trim(),
+            city:          this.f['city'].value.trim(),
+            password:      this.f['password'].value,
+            role:          this.f['role'].value,
+            shopName:      this.f['shopName'].value.trim(),
+            companyNumber: this.f['companyNumber'].value.trim(),
+        }).subscribe({
+            next: (res: any) => {
+                this.loading = false;
+                if (res.status === 'pending_approval') {
+                    this.pendingApproval = true;
+                } else {
+                    this.router.navigate(['/auth/login']);
+                }
+            },
+            error: (err: any) => {
+                this.loading = false;
+                this.error = err?.error?.message || 'Erreur lors de l\'inscription';
+            }
         });
     }
 }

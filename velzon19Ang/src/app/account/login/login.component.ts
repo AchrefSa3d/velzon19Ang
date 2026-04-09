@@ -1,13 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-
-// Comptes de test locaux — pas besoin de backend
-const DEMO_USERS = [
-  { email: 'admin@tijara.tn',  password: 'Admin123',  role: 'admin',  firstName: 'Admin',   lastName: 'Tijara'  },
-  { email: 'vendor@tijara.tn', password: 'Vendor123', role: 'vendor', firstName: 'Mohamed', lastName: 'Ben Ali' },
-  { email: 'user@tijara.tn',   password: 'User123',   role: 'user',   firstName: 'Sami',    lastName: 'Khiari'  },
-];
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
     selector: 'app-login',
@@ -24,11 +18,17 @@ export class LoginComponent implements OnInit {
     fieldTextType = false;
     year          = new Date().getFullYear();
 
-    demoUsers = DEMO_USERS;
+    // Comptes démo affichés dans le template
+    demoUsers = [
+        { email: 'admin@tijara.tn',  password: 'admin123',    role: 'admin'  },
+        { email: 'vendor@tijara.tn', password: 'password',    role: 'vendor' },
+        { email: 'user@tijara.tn',   password: 'password123', role: 'user'   },
+    ];
 
     constructor(
         private fb: UntypedFormBuilder,
         private router: Router,
+        private api: TijaraApiService,
     ) {
         // Si déjà connecté, rediriger directement
         try {
@@ -53,7 +53,7 @@ export class LoginComponent implements OnInit {
 
     toggleFieldTextType(): void { this.fieldTextType = !this.fieldTextType; }
 
-    fillDemo(user: typeof DEMO_USERS[0]): void {
+    fillDemo(user: any): void {
         this.loginForm.patchValue({ email: user.email, password: user.password });
     }
 
@@ -66,18 +66,33 @@ export class LoginComponent implements OnInit {
         const email    = this.f['email'].value.trim().toLowerCase();
         const password = this.f['password'].value;
 
-        setTimeout(() => {
-            const found = DEMO_USERS.find(
-                u => u.email.toLowerCase() === email && u.password === password
-            );
-            this.loading = false;
-            if (found) {
-                sessionStorage.setItem('currentUser', JSON.stringify(found));
-                this.redirectByRole(found.role);
-            } else {
-                this.error = 'Email ou mot de passe incorrect.';
+        this.api.login(email, password).subscribe({
+            next: (res: any) => {
+                this.loading = false;
+                // Sauvegarder token + infos utilisateur
+                const currentUser = {
+                    token:     res.token,
+                    id:        res.user.id,
+                    email:     res.user.email,
+                    role:      res.user.role,
+                    firstName: res.user.firstName,
+                    lastName:  res.user.lastName,
+                    phone:     res.user.phone,
+                    city:      res.user.city,
+                };
+                sessionStorage.setItem('toast', 'true');
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                this.redirectByRole(currentUser.role);
+            },
+            error: (err: any) => {
+                this.loading = false;
+                if (err?.error?.status === 'pending_approval') {
+                    this.error = '⏳ Votre compte vendeur est en attente de validation par l\'administrateur.';
+                } else {
+                    this.error = err?.error?.message || 'Email ou mot de passe incorrect.';
+                }
             }
-        }, 600);
+        });
     }
 
     private redirectByRole(role: string): void {

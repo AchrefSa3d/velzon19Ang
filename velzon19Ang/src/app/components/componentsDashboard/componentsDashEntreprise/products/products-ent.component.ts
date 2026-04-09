@@ -1,16 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
-export interface VendorProduct {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  stock: number;
-  status: 'actif' | 'inactif';
-  sales: number;
-  image: string;
-}
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-products-ent',
@@ -25,37 +15,60 @@ export class ProductsEntComponent implements OnInit {
     { label: 'Mes Produits', active: true }
   ];
 
-  products: VendorProduct[] = [
-    { id: 1, name: 'Écouteurs Bluetooth Pro',  category: 'Électronique', price: 130,  stock: 15, status: 'actif',   sales: 18, image: 'assets/images/products/img-1.png' },
-    { id: 2, name: 'Montre Connectée Sport',   category: 'Électronique', price: 250,  stock: 8,  status: 'actif',   sales: 12, image: 'assets/images/products/img-2.png' },
-    { id: 3, name: 'Smartphone 128GB',         category: 'Électronique', price: 750,  stock: 25, status: 'actif',   sales: 9,  image: 'assets/images/products/img-9.png' },
-    { id: 4, name: 'Tapis Yoga Antidérapant',  category: 'Sport',        price: 50,   stock: 0,  status: 'inactif', sales: 7,  image: 'assets/images/products/img-2.png' },
-  ];
-
-  filteredProducts: VendorProduct[] = [];
+  products: any[] = [];
+  filteredProducts: any[] = [];
+  categories: any[] = [];
   searchTerm = '';
   filterStatus = 'tous';
   showForm = false;
   editMode = false;
-  selectedProduct: VendorProduct | null = null;
+  selectedProduct: any = null;
   productForm!: FormGroup;
+  loading = true;
+  saving = false;
+  saveError = '';
+  imagePreview = '';
 
-  categories = ['Électronique', 'Mode', 'Maison', 'Sport', 'Beauté', 'Jouets', 'Alimentation'];
-
-  constructor(private fb: FormBuilder) {}
+  constructor(private fb: FormBuilder, private api: TijaraApiService) {}
 
   ngOnInit(): void {
-    this.applyFilter();
     this.initForm();
+    this.loadProducts();
+    this.api.getCategories().subscribe({
+      next: (data: any[]) => { this.categories = data; }
+    });
   }
 
-  initForm(p?: VendorProduct) {
+  loadProducts(): void {
+    this.loading = true;
+    this.api.getMyProducts().subscribe({
+      next: (data: any[]) => {
+        this.products = data.map(p => ({
+          id:             p.id,
+          name:           p.name,
+          category:       p.category_name || '—',
+          categoryId:     p.category_id,
+          price:          p.price,
+          stock:          p.stock,
+          status:         p.is_active ? 'actif' : 'inactif',
+          approvalStatus: p.approval_status || 'pending',
+          sales:          0,
+          image:          p.image_url || null,
+        }));
+        this.loading = false;
+        this.applyFilter();
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  initForm(p?: any) {
     this.productForm = this.fb.group({
-      name:     [p?.name     || '', [Validators.required, Validators.minLength(3)]],
-      category: [p?.category || '', Validators.required],
-      price:    [p?.price    || '', [Validators.required, Validators.min(1)]],
-      stock:    [p?.stock    || 0,  [Validators.required, Validators.min(0)]],
-      status:   [p?.status   || 'actif'],
+      name:        [p?.name        || '', [Validators.required, Validators.minLength(3)]],
+      category_id: [p?.categoryId  || '', Validators.required],
+      price:       [p?.price       || '', [Validators.required, Validators.min(1)]],
+      stock:       [p?.stock       ?? 0,  [Validators.required, Validators.min(0)]],
+      status:      [p?.status      || 'actif'],
     });
   }
 
@@ -63,9 +76,7 @@ export class ProductsEntComponent implements OnInit {
 
   applyFilter() {
     let list = [...this.products];
-    if (this.filterStatus !== 'tous') {
-      list = list.filter(p => p.status === this.filterStatus);
-    }
+    if (this.filterStatus !== 'tous') list = list.filter(p => p.status === this.filterStatus);
     if (this.searchTerm.trim()) {
       const t = this.searchTerm.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(t) || p.category.toLowerCase().includes(t));
@@ -76,49 +87,90 @@ export class ProductsEntComponent implements OnInit {
   openAdd() {
     this.editMode = false;
     this.selectedProduct = null;
+    this.imagePreview = '';
+    this.saveError = '';
     this.initForm();
     this.showForm = true;
   }
 
-  openEdit(p: VendorProduct) {
+  openEdit(p: any) {
     this.editMode = true;
     this.selectedProduct = p;
+    this.imagePreview = p.image || '';
+    this.saveError = '';
     this.initForm(p);
     this.showForm = true;
   }
 
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image trop grande. Maximum 2 MB.');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e: any) => { this.imagePreview = e.target.result; };
+    reader.readAsDataURL(file);
+  }
+
+  removeImage(): void { this.imagePreview = ''; }
+
   saveProduct() {
     if (this.productForm.invalid) return;
     const val = this.productForm.value;
+    const payload = {
+      name:        val.name,
+      category_id: val.category_id ? parseInt(val.category_id) : null,
+      price:       parseFloat(val.price),
+      stock:       parseInt(val.stock),
+      is_active:   val.status === 'actif' ? 1 : 0,
+      image_url:   this.imagePreview || null,
+    };
+
+    this.saving   = true;
+    this.saveError = '';
+
     if (this.editMode && this.selectedProduct) {
-      const idx = this.products.findIndex(p => p.id === this.selectedProduct!.id);
-      this.products[idx] = { ...this.selectedProduct, ...val };
+      this.api.updateProduct(this.selectedProduct.id, payload).subscribe({
+        next: () => { this.saving = false; this.showForm = false; this.loadProducts(); },
+        error: (err: any) => {
+          this.saving = false;
+          this.saveError = err?.error?.message || 'Erreur lors de la modification.';
+        }
+      });
     } else {
-      const newProd: VendorProduct = {
-        id: Date.now(),
-        ...val,
-        sales: 0,
-        image: 'assets/images/products/img-1.png',
-      };
-      this.products.unshift(newProd);
+      this.api.createProduct(payload).subscribe({
+        next: () => { this.saving = false; this.showForm = false; this.loadProducts(); },
+        error: (err: any) => {
+          this.saving = false;
+          this.saveError = err?.error?.message || 'Erreur lors de l\'ajout. Vérifiez que le backend est démarré.';
+        }
+      });
     }
-    this.showForm = false;
-    this.applyFilter();
   }
 
-  toggleStatus(p: VendorProduct) {
-    p.status = p.status === 'actif' ? 'inactif' : 'actif';
-    this.applyFilter();
+  toggleStatus(p: any) {
+    const newStatus = p.status === 'actif' ? 'inactif' : 'actif';
+    this.api.updateProduct(p.id, { is_active: newStatus === 'actif' ? 1 : 0 }).subscribe({
+      next: () => { p.status = newStatus; this.applyFilter(); }
+    });
   }
 
   deleteProduct(id: number) {
     if (confirm('Supprimer ce produit ?')) {
-      this.products = this.products.filter(p => p.id !== id);
-      this.applyFilter();
+      this.api.deleteProduct(id).subscribe({
+        next: () => {
+          this.products = this.products.filter(p => p.id !== id);
+          this.applyFilter();
+        }
+      });
     }
   }
 
   get activeCount()   { return this.products.filter(p => p.status === 'actif').length; }
   get inactiveCount() { return this.products.filter(p => p.status === 'inactif').length; }
-  get totalSales()    { return this.products.reduce((s, p) => s + p.sales, 0); }
+  get totalSales()    { return this.products.reduce((s, p) => s + (p.sales || 0), 0); }
 }

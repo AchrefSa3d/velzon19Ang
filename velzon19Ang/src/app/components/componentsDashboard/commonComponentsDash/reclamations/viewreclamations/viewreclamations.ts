@@ -1,12 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-
-interface ReclamationUser {
-  id: string;
-  sujet: string;
-  message: string;
-  date: string;
-  statut: string;
-}
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-viewreclamations-user',
@@ -21,55 +14,72 @@ export class ViewreclamationsExtern implements OnInit {
     { label: 'Mes Réclamations', active: true }
   ];
 
-  showForm = false;
-  submitting = false;
+  showForm     = false;
+  submitting   = false;
   submitSuccess = false;
+  loading      = true;
 
-  newSujet = '';
+  newSujet   = '';
   newMessage = '';
 
-  reclamations: ReclamationUser[] = [
-    {
-      id: 'REC-004',
-      sujet: 'Remboursement en attente',
-      message: 'J\'ai annulé ma commande TJR-021 il y a 10 jours et je n\'ai toujours pas reçu mon remboursement.',
-      date: '26/03/2026',
-      statut: 'En attente'
-    },
-    {
-      id: 'REC-007',
-      sujet: 'Retard de livraison',
-      message: 'Ma commande TJR-030 devait arriver le 25/03 mais toujours rien.',
-      date: '20/03/2026',
-      statut: 'En cours'
-    },
-  ];
+  reclamations: any[] = [];
 
-  ngOnInit(): void {
-    const stored = sessionStorage.getItem('tijara_reclamations_user');
-    if (stored) {
-      const extra: ReclamationUser[] = JSON.parse(stored);
-      this.reclamations = [...this.reclamations, ...extra];
-    }
+  constructor(private api: TijaraApiService) {}
+
+  ngOnInit(): void { this.loadReclamations(); }
+
+  loadReclamations(): void {
+    this.loading = true;
+    this.api.getReclamations().subscribe({
+      next: (data: any[]) => {
+        this.reclamations = data.map(r => ({
+          id:      r.id,
+          sujet:   r.subject,
+          message: r.description,
+          date:    new Date(r.created_at).toLocaleDateString('fr-FR'),
+          statut:  this.mapStatus(r.status),
+        }));
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
   }
 
   submitReclamation(): void {
     if (!this.newSujet.trim() || !this.newMessage.trim()) return;
-    const rec: ReclamationUser = {
-      id: 'REC-' + (100 + this.reclamations.length + 1),
-      sujet: this.newSujet.trim(),
-      message: this.newMessage.trim(),
-      date: new Date().toLocaleDateString('fr-TN'),
-      statut: 'En attente'
-    };
-    this.reclamations.unshift(rec);
-    const extras = this.reclamations.filter(r => r.id.startsWith('REC-1') || parseInt(r.id.split('-')[1]) > 100);
-    sessionStorage.setItem('tijara_reclamations_user', JSON.stringify(extras));
-    this.newSujet = '';
-    this.newMessage = '';
-    this.showForm = false;
-    this.submitSuccess = true;
-    setTimeout(() => this.submitSuccess = false, 3000);
+    this.submitting = true;
+
+    this.api.createReclamation({
+      subject:     this.newSujet.trim(),
+      description: this.newMessage.trim(),
+    }).subscribe({
+      next: (rec: any) => {
+        this.reclamations.unshift({
+          id:      rec.id,
+          sujet:   rec.subject,
+          message: rec.description,
+          date:    new Date(rec.created_at).toLocaleDateString('fr-FR'),
+          statut:  'En attente',
+        });
+        this.newSujet   = '';
+        this.newMessage = '';
+        this.showForm   = false;
+        this.submitting = false;
+        this.submitSuccess = true;
+        setTimeout(() => this.submitSuccess = false, 3000);
+      },
+      error: () => { this.submitting = false; }
+    });
+  }
+
+  private mapStatus(s: string): string {
+    switch (s) {
+      case 'open':        return 'En attente';
+      case 'in_progress': return 'En cours';
+      case 'resolved':    return 'Résolue';
+      case 'closed':      return 'Rejetée';
+      default:            return s;
+    }
   }
 
   getStatusClass(statut: string): string {

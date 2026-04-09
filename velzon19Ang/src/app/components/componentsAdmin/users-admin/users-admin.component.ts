@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-users-admin',
@@ -15,38 +16,61 @@ export class UsersAdminComponent implements OnInit {
 
   searchTerm = '';
   filterRole = 'tous';
+  loading    = true;
 
-  allUsers = [
-    { id: 1, name: 'Amine Touati',      email: 'user@tijara.tn',    role: 'user',   status: 'actif',      joined: '10/01/2026', orders: 5,  avatar: 'AT' },
-    { id: 2, name: 'Maroua Ben Salah',  email: 'maroua@tijara.tn',  role: 'user',   status: 'actif',      joined: '15/01/2026', orders: 12, avatar: 'MB' },
-    { id: 3, name: 'Ghaith Slimi',      email: 'ghaith@tijara.tn',  role: 'user',   status: 'inactif',    joined: '20/01/2026', orders: 2,  avatar: 'GS' },
-    { id: 4, name: 'Achraf Saad',       email: 'vendor@tijara.tn',  role: 'vendor', status: 'actif',      joined: '05/01/2026', orders: 48, avatar: 'AS' },
-    { id: 5, name: 'Aziz Tarchoun',     email: 'aziz@tijara.tn',    role: 'vendor', status: 'actif',      joined: '08/01/2026', orders: 31, avatar: 'AZ' },
-    { id: 6, name: 'Sami Cherif',       email: 'sami@tijara.tn',    role: 'user',   status: 'bloqué',     joined: '22/02/2026', orders: 0,  avatar: 'SC' },
-    { id: 7, name: 'Nour Hammami',      email: 'nour@tijara.tn',    role: 'user',   status: 'actif',      joined: '01/03/2026', orders: 7,  avatar: 'NH' },
-    { id: 8, name: 'Rania Gharbi',      email: 'rania@tijara.tn',   role: 'vendor', status: 'en attente', joined: '25/03/2026', orders: 0,  avatar: 'RG' },
-  ];
-
+  allUsers: any[]      = [];
   filteredUsers: any[] = [];
 
-  ngOnInit(): void { this.applyFilter(); }
+  constructor(private api: TijaraApiService) {}
 
-  applyFilter() {
+  ngOnInit(): void { this.loadUsers(); }
+
+  loadUsers(): void {
+    this.loading = true;
+    this.api.getAdminUsers().subscribe({
+      next: (data: any[]) => {
+        this.allUsers = data.map(u => ({
+          id:     u.id,
+          name:   `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+          email:  u.email,
+          phone:  u.phone || '-',
+          city:   u.city  || '-',
+          role:   u.role,
+          status: !u.is_active ? 'bloqué'
+                : (u.role === 'vendor' && !u.is_approved) ? 'en attente'
+                : 'actif',
+          joined: new Date(u.created_at).toLocaleDateString('fr-FR'),
+          avatar: `${u.first_name?.[0] || ''}${u.last_name?.[0] || ''}`.toUpperCase(),
+        }));
+        this.loading = false;
+        this.applyFilter();
+      },
+      error: () => { this.loading = false; }
+    });
+  }
+
+  applyFilter(): void {
     let list = [...this.allUsers];
-    if (this.filterRole !== 'tous') list = list.filter(u => u.role === this.filterRole);
+    if (this.filterRole !== 'tous')
+      list = list.filter(u => u.role === this.filterRole);
     if (this.searchTerm.trim()) {
       const t = this.searchTerm.toLowerCase();
-      list = list.filter(u => u.name.toLowerCase().includes(t) || u.email.toLowerCase().includes(t));
+      list = list.filter(u =>
+        u.name.toLowerCase().includes(t)  ||
+        u.email.toLowerCase().includes(t) ||
+        (u.city || '').toLowerCase().includes(t)
+      );
     }
     this.filteredUsers = list;
   }
 
-  toggleStatus(user: any) {
+  toggleStatus(user: any): void {
     user.status = user.status === 'actif' ? 'bloqué' : 'actif';
     this.applyFilter();
   }
 
-  deleteUser(user: any) {
+  deleteUser(user: any): void {
+    if (!confirm(`Supprimer le compte de ${user.name} ?`)) return;
     this.allUsers = this.allUsers.filter(u => u.id !== user.id);
     this.applyFilter();
   }
@@ -61,11 +85,10 @@ export class UsersAdminComponent implements OnInit {
 
   getStatusBadge(status: string): string {
     switch (status) {
-      case 'actif':       return 'bg-success-subtle text-success';
-      case 'inactif':     return 'bg-secondary-subtle text-secondary';
-      case 'bloqué':      return 'bg-danger-subtle text-danger';
-      case 'en attente':  return 'bg-warning-subtle text-warning';
-      default:            return 'bg-secondary-subtle text-secondary';
+      case 'actif':      return 'bg-success-subtle text-success';
+      case 'bloqué':     return 'bg-danger-subtle text-danger';
+      case 'en attente': return 'bg-warning-subtle text-warning';
+      default:           return 'bg-secondary-subtle text-secondary';
     }
   }
 
@@ -74,6 +97,7 @@ export class UsersAdminComponent implements OnInit {
       total:   this.allUsers.length,
       users:   this.allUsers.filter(u => u.role === 'user').length,
       vendors: this.allUsers.filter(u => u.role === 'vendor').length,
+      pending: this.allUsers.filter(u => u.status === 'en attente').length,
       blocked: this.allUsers.filter(u => u.status === 'bloqué').length,
     };
   }

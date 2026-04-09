@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-orders-admin',
@@ -16,36 +17,51 @@ export class OrdersAdminComponent implements OnInit {
   searchTerm = '';
   filterStatus = 'tous';
   statuses = ['En attente', 'Confirmée', 'Livrée', 'Annulée'];
+  loading = true;
 
-  allOrders: any[] = [
-    { id: 'TJR-001', client: 'Amine Touati',     vendor: 'TechTunis',  ville: 'Tunis',    product: 'Écouteurs Bluetooth Pro', qty: 1, total: 130,  status: 'En attente', date: '29/03/2026' },
-    { id: 'TJR-002', client: 'Maroua Ben Salah', vendor: 'ModeTN',     ville: 'Sfax',     product: 'Veste en Cuir Homme',     qty: 1, total: 350,  status: 'Confirmée',  date: '28/03/2026' },
-    { id: 'TJR-003', client: 'Ghaith Slimi',     vendor: 'TechTunis',  ville: 'Sousse',   product: 'Smartphone 128GB',        qty: 1, total: 750,  status: 'Livrée',     date: '27/03/2026' },
-    { id: 'TJR-004', client: 'Sami Cherif',      vendor: 'SportZone',  ville: 'Bizerte',  product: 'Vélo de Route Carbon',    qty: 1, total: 950,  status: 'Annulée',    date: '26/03/2026' },
-    { id: 'TJR-005', client: 'Nour Hammami',     vendor: 'MaisonDeco', ville: 'Nabeul',   product: 'Aspirateur Robot WiFi',   qty: 1, total: 480,  status: 'En attente', date: '25/03/2026' },
-    { id: 'TJR-006', client: 'Ines Karray',      vendor: 'TechTunis',  ville: 'Monastir', product: 'Montre Connectée Sport',  qty: 1, total: 250,  status: 'Confirmée',  date: '24/03/2026' },
-    { id: 'TJR-007', client: 'Youssef Maatoug',  vendor: 'NatureCare', ville: 'Kairouan', product: 'Crème Hydratante Bio',    qty: 3, total: 75,   status: 'Livrée',     date: '23/03/2026' },
-    { id: 'TJR-008', client: 'Rania Gharbi',     vendor: 'ModeTN',     ville: 'Ariana',   product: 'Sac à Main Femme Cuir',   qty: 1, total: 200,  status: 'Confirmée',  date: '22/03/2026' },
-  ];
-
+  allOrders: any[] = [];
   filteredOrders: any[] = [];
 
-  ngOnInit(): void {
-    const stored = JSON.parse(sessionStorage.getItem('tijara_orders') || '[]');
-    stored.forEach((o: any) => {
-      this.allOrders.unshift({
-        id:      o.orderNumber,
-        client:  (o.address?.firstName || '') + ' ' + (o.address?.lastName || ''),
-        vendor:  'Tijara Marketplace',
-        ville:   o.address?.ville || o.address?.wilaya || '',
-        product: o.items?.[0]?.product?.name || 'Produit',
-        qty:     o.items?.[0]?.qty || 1,
-        total:   o.total,
-        status:  o.status,
-        date:    o.date,
-      });
+  constructor(private api: TijaraApiService) {}
+
+  ngOnInit(): void { this.loadOrders(); }
+
+  loadOrders(): void {
+    this.loading = true;
+    this.api.getOrders().subscribe({
+      next: (data: any[]) => {
+        this.allOrders = data.map(o => ({
+          id:      o.id,
+          client:  o.client_name || o.email || 'Client',
+          vendor:  '—',
+          ville:   o.shipping_address || '—',
+          product: '—',
+          total:   o.total_amount || 0,
+          date:    new Date(o.created_at).toLocaleDateString('fr-FR'),
+          status:  this.mapStatus(o.status),
+          apiId:   o.id,
+        }));
+        this.loading = false;
+        this.applyFilter();
+      },
+      error: () => { this.loading = false; }
     });
-    this.applyFilter();
+  }
+
+  private mapStatus(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'En attente', confirmed: 'Confirmée',
+      shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée'
+    };
+    return map[s] || s;
+  }
+
+  private statusToApi(s: string): string {
+    const map: Record<string, string> = {
+      'En attente': 'pending', 'Confirmée': 'confirmed',
+      'Expédiée': 'shipped', 'Livrée': 'delivered', 'Annulée': 'cancelled'
+    };
+    return map[s] || s;
   }
 
   applyFilter() {
@@ -54,9 +70,8 @@ export class OrdersAdminComponent implements OnInit {
     if (this.searchTerm.trim()) {
       const t = this.searchTerm.toLowerCase();
       list = list.filter(o =>
-        o.id.toLowerCase().includes(t) ||
+        String(o.id).includes(t) ||
         o.client.toLowerCase().includes(t) ||
-        o.vendor.toLowerCase().includes(t) ||
         o.ville.toLowerCase().includes(t)
       );
     }
@@ -65,6 +80,7 @@ export class OrdersAdminComponent implements OnInit {
 
   changeStatus(order: any, status: string) {
     order.status = status;
+    this.api.updateOrderStatus(order.apiId, this.statusToApi(status)).subscribe();
     this.applyFilter();
   }
 
@@ -72,6 +88,7 @@ export class OrdersAdminComponent implements OnInit {
     switch (status) {
       case 'En attente': return 'bg-warning-subtle text-warning';
       case 'Confirmée':  return 'bg-info-subtle text-info';
+      case 'Expédiée':   return 'bg-primary-subtle text-primary';
       case 'Livrée':     return 'bg-success-subtle text-success';
       case 'Annulée':    return 'bg-danger-subtle text-danger';
       default:           return 'bg-secondary-subtle text-secondary';

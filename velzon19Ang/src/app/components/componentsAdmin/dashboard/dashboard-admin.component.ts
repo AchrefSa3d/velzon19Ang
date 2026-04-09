@@ -4,6 +4,7 @@ import {
   ApexStroke, ApexTooltip, ApexFill, ApexNonAxisChartSeries,
   ApexPlotOptions, ApexLegend
 } from 'ng-apexcharts';
+import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
   selector: 'app-dashboard-admin',
@@ -19,30 +20,17 @@ export class DashboardAdminComponent implements OnInit {
   ];
 
   stats = [
-    { label: 'Utilisateurs',       value: 1248,      icon: 'ri-user-3-line',              color: 'primary', trend: '+12%' },
-    { label: 'Vendeurs',           value: 87,         icon: 'ri-store-2-line',              color: 'info',    trend: '+5%'  },
-    { label: 'Commandes',          value: 3420,       icon: 'ri-shopping-bag-3-line',       color: 'success', trend: '+18%' },
-    { label: 'Chiffre d\'affaires', value: '142K DT', icon: 'ri-money-dollar-circle-line',  color: 'warning', trend: '+9%'  },
+    { label: 'Utilisateurs',        value: 0,     icon: 'ri-user-3-line',             color: 'primary', trend: '' },
+    { label: 'Vendeurs',            value: 0,     icon: 'ri-store-2-line',             color: 'info',    trend: '' },
+    { label: 'Commandes',           value: 0,     icon: 'ri-shopping-bag-3-line',      color: 'success', trend: '' },
+    { label: 'Vendeurs en attente', value: 0,     icon: 'ri-time-line',               color: 'warning', trend: '' },
   ];
 
-  recentOrders = [
-    { id: 'TJR-031', client: 'Amine Touati',   vendor: 'TechTunis',  total: 130,  status: 'Livrée',     date: '29/03/2026' },
-    { id: 'TJR-030', client: 'Maroua Ben Salah', vendor: 'ModeTN',   total: 350,  status: 'Confirmée',  date: '29/03/2026' },
-    { id: 'TJR-029', client: 'Ghaith Slimi',   vendor: 'TechTunis',  total: 750,  status: 'En attente', date: '28/03/2026' },
-    { id: 'TJR-028', client: 'Sami Cherif',    vendor: 'SportZone',  total: 250,  status: 'Annulée',    date: '28/03/2026' },
-    { id: 'TJR-027', client: 'Nour Hammami',   vendor: 'MaisonDeco', total: 480,  status: 'Livrée',     date: '27/03/2026' },
-  ];
-
-  pendingVendors = [
-    { name: 'TechSousse',    owner: 'Aziz Tarchoun',  category: 'Électronique', date: '28/03/2026' },
-    { name: 'FashionTN',     owner: 'Rania Gharbi',   category: 'Mode',         date: '27/03/2026' },
-    { name: 'BioNatureTN',   owner: 'Youssef Maatoug',category: 'Alimentation', date: '26/03/2026' },
-  ];
+  recentOrders: any[] = [];
+  pendingVendors: any[] = [];
 
   salesSeries: ApexAxisChartSeries = [{
-    name: 'Commandes', data: [65, 85, 120, 98, 140, 175, 160, 210, 195, 230, 250, 280]
-  }, {
-    name: 'Revenus (K DT)', data: [4, 6, 9, 7, 11, 13, 12, 17, 15, 19, 20, 23]
+    name: 'Commandes', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   }];
 
   salesChart: ApexChart = { type: 'area', height: 280, toolbar: { show: false }, zoom: { enabled: false } };
@@ -55,13 +43,54 @@ export class DashboardAdminComponent implements OnInit {
   salesDataLabels: ApexDataLabels = { enabled: false };
   salesTooltip: ApexTooltip = { x: { format: 'MMM' } };
 
-  catSeries: ApexNonAxisChartSeries = [35, 25, 18, 12, 10];
+  catSeries: ApexNonAxisChartSeries = [1];
   catChart: ApexChart = { type: 'donut', height: 260 };
-  catLabels = ['Électronique', 'Mode', 'Maison', 'Sport', 'Autre'];
+  catLabels = ['Chargement...'];
   catLegend: ApexLegend = { position: 'bottom' };
   catPlotOptions: ApexPlotOptions = { pie: { donut: { size: '65%' } } };
 
-  ngOnInit(): void {}
+  constructor(private api: TijaraApiService) {}
+
+  ngOnInit(): void {
+    this.api.getAdminStats().subscribe({
+      next: (s: any) => {
+        this.stats[0].value = s.users        || 0;
+        this.stats[1].value = s.vendors      || 0;
+        this.stats[2].value = s.orders       || 0;
+        this.stats[3].value = s.pendingVendors || 0;
+      }
+    });
+
+    this.api.getPendingVendors().subscribe({
+      next: (data: any[]) => {
+        this.pendingVendors = data.slice(0, 5).map(v => ({
+          name:  v.shop_name || `${v.first_name} ${v.last_name}`,
+          owner: `${v.first_name} ${v.last_name}`,
+          date:  new Date(v.created_at).toLocaleDateString('fr-FR'),
+        }));
+      }
+    });
+
+    this.api.getOrders().subscribe({
+      next: (data: any[]) => {
+        this.recentOrders = data.slice(0, 5).map(o => ({
+          id:     `#${o.id}`,
+          client: o.client_name || o.email || 'Client',
+          total:  o.total_amount || 0,
+          status: this.mapOrderStatus(o.status),
+          date:   new Date(o.created_at).toLocaleDateString('fr-FR'),
+        }));
+      }
+    });
+  }
+
+  private mapOrderStatus(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'En attente', confirmed: 'Confirmée',
+      shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée'
+    };
+    return map[s] || s;
+  }
 
   getStatusClass(status: string): string {
     switch (status) {
