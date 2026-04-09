@@ -126,8 +126,9 @@ export class TijaraApiService {
 
   // ─── Admin modération ────────────────────────────────────
   getAdminAnnonces(status?: string): Observable<any> {
-    const params = status ? { status } : {};
-    return this.http.get(`${this.apiUrl}/admin/annonces`, { params, headers: this.getHeaders() });
+    const options: any = { headers: this.getHeaders() };
+    if (status) options.params = { status };
+    return this.http.get(`${this.apiUrl}/admin/annonces`, options);
   }
 
   approveAnnonce(id: number): Observable<any> {
