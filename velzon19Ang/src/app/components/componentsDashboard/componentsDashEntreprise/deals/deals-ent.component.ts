@@ -3,19 +3,19 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TijaraApiService } from 'src/app/core/services/tijara-api.service';
 
 @Component({
-  selector: 'app-annonces-ent',
-  templateUrl: './annonces-ent.component.html',
+  selector: 'app-deals-ent',
+  templateUrl: './deals-ent.component.html',
   standalone: false
 })
-export class AnnoncesEntComponent implements OnInit {
+export class DealsEntComponent implements OnInit {
 
   breadCrumbItems = [
     { label: 'Vendeur' },
-    { label: 'Mes Annonces', active: true }
+    { label: 'Mes Deals & Promos', active: true }
   ];
 
-  myAnnonces: any[] = [];
-  publicAnnonces: any[] = [];
+  myDeals: any[] = [];
+  publicDeals: any[] = [];
   activeTab: 'miennes' | 'toutes' = 'miennes';
   loading       = true;
   showForm      = false;
@@ -26,7 +26,7 @@ export class AnnoncesEntComponent implements OnInit {
   expandedComments: Record<number, boolean> = {};
   comments: Record<number, any[]>           = {};
   commentText: Record<number, string>       = {};
-  annonceForm!: FormGroup;
+  dealForm!: FormGroup;
 
   constructor(private api: TijaraApiService, private fb: FormBuilder) {}
 
@@ -36,27 +36,27 @@ export class AnnoncesEntComponent implements OnInit {
     this.initForm();
   }
 
-  initForm(type = 'annonce' as string): void {
-    this.annonceForm = this.fb.group({
+  initForm(): void {
+    this.dealForm = this.fb.group({
       title:   ['', [Validators.required, Validators.minLength(5)]],
       content: ['', [Validators.required, Validators.minLength(10)]],
-      type:    [type],
+      type:    ['deal'],
     });
   }
 
-  get f() { return this.annonceForm.controls; }
+  get f() { return this.dealForm.controls; }
 
   loadMine(): void {
     this.loading = true;
     this.api.getMyAnnonces().subscribe({
-      next: (data: any[]) => { this.myAnnonces = data.filter((a: any) => a.type === 'annonce'); this.loading = false; },
+      next: (data: any[]) => { this.myDeals = data.filter((a: any) => a.type === 'deal'); this.loading = false; },
       error: () => { this.loading = false; }
     });
   }
 
   loadPublic(): void {
     this.api.getAnnonces().subscribe({
-      next: (data: any[]) => { this.publicAnnonces = data.filter((a: any) => a.type === 'annonce'); }
+      next: (data: any[]) => { this.publicDeals = data.filter((a: any) => a.type === 'deal'); }
     });
   }
 
@@ -70,17 +70,17 @@ export class AnnoncesEntComponent implements OnInit {
   }
 
   submit(): void {
-    if (this.annonceForm.invalid) return;
+    if (this.dealForm.invalid) return;
     this.submitting = true;
     this.submitError = '';
-    const payload = { ...this.annonceForm.value, image_url: this.imagePreview || null };
+    const payload = { ...this.dealForm.value, image_url: this.imagePreview || null };
     this.api.createAnnonce(payload).subscribe({
       next: () => {
         this.submitting    = false;
         this.showForm      = false;
-        this.submitSuccess = 'Soumis avec succès ! En attente de validation admin.';
+        this.submitSuccess = 'Deal soumis ! En attente de validation admin.';
         this.imagePreview  = '';
-        this.annonceForm.reset();
+        this.dealForm.reset({ type: 'deal' });
         this.loadMine();
         setTimeout(() => { this.submitSuccess = ''; }, 6000);
       },
@@ -91,10 +91,10 @@ export class AnnoncesEntComponent implements OnInit {
     });
   }
 
-  deleteAnnonce(id: number): void {
-    if (!confirm('Supprimer ?')) return;
+  deleteDeal(id: number): void {
+    if (!confirm('Supprimer ce deal ?')) return;
     this.api.deleteAnnonce(id).subscribe({
-      next: () => { this.myAnnonces = this.myAnnonces.filter(a => a.id !== id); }
+      next: () => { this.myDeals = this.myDeals.filter(a => a.id !== id); }
     });
   }
 
@@ -137,9 +137,9 @@ export class AnnoncesEntComponent implements OnInit {
 
   getStatusLabel(s: string): string {
     switch (s) {
-      case 'approved': return 'Approuvée';
+      case 'approved': return 'Approuvé';
       case 'pending':  return 'En attente';
-      case 'rejected': return 'Rejetée';
+      case 'rejected': return 'Rejeté';
       default:         return s;
     }
   }

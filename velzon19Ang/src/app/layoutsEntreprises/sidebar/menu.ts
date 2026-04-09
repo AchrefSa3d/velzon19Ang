@@ -74,6 +74,25 @@ export const MENU: MenuItem[] = [
     ]
   },
 
+  // ─── SECTION : ANNONCES & DEALS ─────────────────────────────────────────
+  {
+    id: 35,
+    label: 'MENUITEMS.ANNONCES.TEXT',
+    isTitle: true
+  },
+  {
+    id: 36,
+    label: 'Annonces',
+    icon: 'ri-megaphone-line',
+    link: '/ent/annonces',
+  },
+  {
+    id: 37,
+    label: 'Deals & Promos',
+    icon: 'ri-price-tag-3-line',
+    link: '/ent/deals',
+  },
+
   // ─── SECTION : STATISTIQUES ──────────────────────────────────────────────
   {
     id: 30,

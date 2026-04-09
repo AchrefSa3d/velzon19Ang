@@ -47,6 +47,19 @@ export const MENU: MenuItem[] = [
     link: '/users/orders',
   },
 
+  // ─── COMMUNAUTÉ ───────────────────────────────────────────────────────────
+  {
+    id: 25,
+    label: 'MENUITEMS.COMMUNITY.TEXT',
+    isTitle: true
+  },
+  {
+    id: 26,
+    label: 'Annonces',
+    icon: 'ri-megaphone-line',
+    link: '/users/annonces',
+  },
+
   // ─── MON COMPTE ───────────────────────────────────────────────────────────
   {
     id: 30,

@@ -15,6 +15,7 @@ import { OrdersEntComponent }     from './orders/orders-ent.component';
 import { ProfileEntComponent }    from './profile/profile-ent.component';
 import { MessagesEntComponent }   from './messages/messages-ent.component';
 import { AnnoncesEntComponent }   from './annonces/annonces-ent.component';
+import { DealsEntComponent }      from './deals/deals-ent.component';
 
 const routes: Routes = [
   { path: '',           redirectTo: 'dashboard', pathMatch: 'full' },
@@ -24,6 +25,7 @@ const routes: Routes = [
   { path: 'profile',    component: ProfileEntComponent    },
   { path: 'messages',   component: MessagesEntComponent   },
   { path: 'annonces',   component: AnnoncesEntComponent   },
+  { path: 'deals',      component: DealsEntComponent      },
   {
     path: 'reclamations',
     loadChildren: () => import('../commonComponentsDash/reclamations/reclamations.module').then(m => m.ReclamationsModule),
@@ -38,6 +40,7 @@ const routes: Routes = [
     ProfileEntComponent,
     MessagesEntComponent,
     AnnoncesEntComponent,
+    DealsEntComponent,
   ],
   imports: [
     CommonModule,

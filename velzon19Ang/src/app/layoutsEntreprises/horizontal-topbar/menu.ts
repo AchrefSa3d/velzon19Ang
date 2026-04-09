@@ -36,6 +36,23 @@ export const MENU: MenuItem[] = [
     link: '/ent/messages',
   },
   {
+    id: 15,
+    label: 'MENUITEMS.ANNONCES.TEXT',
+    isTitle: true
+  },
+  {
+    id: 16,
+    label: 'Annonces',
+    icon: 'ri-megaphone-line',
+    link: '/ent/annonces',
+  },
+  {
+    id: 17,
+    label: 'Deals & Promos',
+    icon: 'ri-price-tag-3-line',
+    link: '/ent/deals',
+  },
+  {
     id: 20,
     label: 'MENUITEMS.ACCOUNT.TEXT',
     isTitle: true

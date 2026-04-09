@@ -60,6 +60,25 @@ export const MENU: MenuItem[] = [
     link: '/admin/vendors',
   },
 
+  // ─── MODÉRATION ───────────────────────────────────────────────────────────
+  {
+    id: 50,
+    label: 'MENUITEMS.MODERATION.TEXT',
+    isTitle: true
+  },
+  {
+    id: 51,
+    label: 'Annonces',
+    icon: 'ri-megaphone-line',
+    link: '/admin/annonces',
+  },
+  {
+    id: 52,
+    label: 'Produits',
+    icon: 'ri-box-3-line',
+    link: '/admin/products',
+  },
+
   // ─── SUPPORT ──────────────────────────────────────────────────────────────
   {
     id: 40,

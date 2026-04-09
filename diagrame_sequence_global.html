@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Diagramme de Séquence Global — Tijara Angular</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      padding: 28px 40px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    header p {
+      color: #bfdbfe;
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .badge-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #e0f2fe;
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 24px 20px 0;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 9px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .tab-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    .diagram-section {
+      display: none;
+      padding: 28px 20px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .diagram-section.active { display: block; }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-bottom: 16px;
+      padding-left: 12px;
+      border-left: 4px solid #2563eb;
+    }
+    .section-desc {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      margin-bottom: 20px;
+      padding-left: 16px;
+    }
+
+    .diagram-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+    }
+
+    .mermaid {
+      font-size: 13px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #1e293b;
+      border-top: 1px solid #334155;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+    .legend-dot {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🛒 Tijara — Diagramme de Séquence Global</h1>
+  <p>Projet Angular · Architecture complète des flux applicatifs</p>
+  <div class="badge-row">
+    <span class="badge">Angular 15+</span>
+    <span class="badge">NgRx Store</span>
+    <span class="badge">JWT Auth</span>
+    <span class="badge">3 Rôles : Admin / Vendor / User</span>
+    <span class="badge">Fake Backend Interceptor</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('global')">🌐 Flux Global</button>
+  <button class="tab-btn" onclick="showTab('auth')">🔐 Authentification</button>
+  <button class="tab-btn" onclick="showTab('admin')">🛠️ Admin</button>
+  <button class="tab-btn" onclick="showTab('vendor')">🏪 Entreprise</button>
+  <button class="tab-btn" onclick="showTab('user')">👤 Utilisateur</button>
+  <button class="tab-btn" onclick="showTab('shop')">🛍️ Boutique</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ONGLET 1 : FLUX GLOBAL                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tab-global" class="diagram-section active">
+  <p class="section-title">🌐 Vue d'ensemble — Flux de navigation global</p>
+  <p class="section-desc">Représente le parcours complet d'un utilisateur depuis l'accès à la landing page jusqu'aux espaces sécurisés selon son rôle.</p>
+  <div class="diagram-card">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor V as Visiteur
+    participant B as Navigateur
+    participant R as AppRouter
+    participant G as AuthGuard / AdminGuard
+    participant L as LandingModule
+    participant A as AccountModule (Auth)
+    participant S as NgRx Store
+    participant F as FakeBackend Interceptor
+    participant ADMIN as ComponentsAdminModule
+    participant ENT as ComponentsDashEntrepriseModule
+    participant USR as ComponentsDashUserModule
+    participant SHOP as EcommerceModule
+
+    V->>B: Accès http://localhost:4200/
+    B->>R: Navigation "/"
+    R-->>B: Redirect → /landing
+
+    B->>L: Chargement LandingModule (lazy)
+    L-->>V: Affichage Page Vitrine (Home, Slider, Pub)
+
+    V->>B: Clic "Se Connecter"
+    B->>R: Navigation /auth/login
+    R->>A: Chargement AccountModule (lazy)
+    A-->>V: Formulaire Login
+
+    V->>A: Saisie email + mot de passe
+    A->>S: dispatch login({ email, password })
+    S->>F: POST /auth/signin
+    F-->>S: { status: 'success', role, token }
+    S-->>A: loginSuccess
+
+    alt Rôle = admin
+        A->>R: navigate('/admin/reclamations')
+        R->>G: canActivate [AuthGuard, AdminGuard]
+        G->>S: vérification token + rôle admin
+        G-->>R: ✅ autorisé
+        R->>ADMIN: Chargement espace Admin
+        ADMIN-->>V: Dashboard Admin
+
+    else Rôle = vendor
+        A->>R: navigate('/ent/reclamations')
+        R->>G: canActivate [AuthGuard]
+        G->>S: vérification token
+        G-->>R: ✅ autorisé
+        R->>ENT: Chargement espace Entreprise
+        ENT-->>V: Dashboard Entreprise
+
+    else Rôle = user
+        A->>R: navigate('/users/reclamations')
+        R->>G: canActivate [AuthGuard]
+        G->>S: vérification token
+        G-->>R: ✅ autorisé
+        R->>USR: Chargement espace Utilisateur
+        USR-->>V: Dashboard Utilisateur
+    end
+
+    V->>B: Accès /shop
+    R->>G: canActivate [AuthGuard]
+    G-->>R: ✅ autorisé
+    R->>SHOP: Chargement EcommerceModule
+    SHOP-->>V: Boutique (Produits / Commandes)
+
+    V->>B: Déconnexion
+    B->>S: dispatch logout()
+    S-->>B: logoutSuccess → sessionStorage cleared
+    B->>R: navigate('/auth/login')
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ONGLET 2 : AUTHENTIFICATION                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tab-auth" class="diagram-section">
+  <p class="section-title">🔐 Module Authentification — Connexion & Inscription</p>
+  <p class="section-desc">Détail des flux NgRx pour login, register et logout. Le FakeBackendInterceptor simule l'API serveur.</p>
+  <div class="diagram-card">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Utilisateur
+    participant C as SigninComponent
+    participant S as NgRx Store
+    participant EFF as AuthEffects
+    participant SVC as AuthfakeService
+    participant FB as FakeBackend Interceptor
+    participant SS as SessionStorage
+    participant R as Router
+
+    Note over FB: Utilisateurs prédéfinis :<br/>admin@tijara.tn / Admin123!<br/>user@tijara.tn / User123!<br/>vendor@tijara.tn / Vendor123!
+
+    rect rgb(20, 40, 80)
+      Note over U,R: ── FLUX LOGIN ──
+      U->>C: Soumet le formulaire (email, password)
+      C->>S: dispatch login({ email, password })
+      S->>EFF: ofType(login) → exhaustMap
+      EFF->>FB: POST /auth/signin
+      FB->>FB: Recherche utilisateur dans tableau
+      alt Utilisateur trouvé
+          FB-->>EFF: 200 OK { status:'success', token, data:{role} }
+          EFF->>SS: setItem('currentUser', user)
+          EFF->>SS: setItem('token', token)
+          EFF->>SS: setItem('toast', 'true')
+          EFF->>S: dispatch loginSuccess({ user })
+          EFF->>R: navigate selon rôle
+          R-->>U: Redirection Dashboard
+      else Identifiants incorrects
+          FB-->>EFF: throwError 'Email ou mot de passe incorrect'
+          EFF->>S: dispatch loginFailure({ error })
+          S-->>C: Mise à jour state.error
+          C-->>U: Affichage message d'erreur
+      end
+    end
+
+    rect rgb(20, 60, 40)
+      Note over U,R: ── FLUX REGISTER ──
+      U->>C: Soumet formulaire inscription (email, firstName, password)
+      C->>S: dispatch Register({ email, first_name, password })
+      S->>EFF: ofType(Register) → exhaustMap
+      EFF->>SVC: register(email, firstName, password)
+      SVC->>FB: POST /auth/signup
+      FB->>FB: Vérification doublons email
+      alt Email disponible
+          FB-->>SVC: 200 OK → nouvel utilisateur (rôle: user)
+          SVC-->>EFF: Observable<User>
+          EFF->>R: navigate('/auth/login')
+          EFF->>S: dispatch loginSuccess({ user })
+          R-->>U: Redirection page Login
+      else Email déjà utilisé
+          FB-->>SVC: throwError 'Cet email est déjà utilisé'
+          EFF->>S: dispatch loginFailure({ error })
+          C-->>U: Affichage erreur
+      end
+    end
+
+    rect rgb(80, 20, 20)
+      Note over U,R: ── FLUX LOGOUT ──
+      U->>C: Clic Déconnexion
+      C->>S: dispatch logout()
+      S->>EFF: ofType(logout) → exhaustMap
+      EFF->>SS: removeItem('currentUser')
+      EFF->>SS: removeItem('token')
+      EFF->>SS: removeItem('toast')
+      EFF->>S: dispatch logoutSuccess()
+      S-->>R: navigate('/auth/login')
+      R-->>U: Page de connexion
+    end
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ONGLET 3 : ADMIN                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tab-admin" class="diagram-section">
+  <p class="section-title">🛠️ Espace Administrateur — Gestion complète</p>
+  <p class="section-desc">L'admin accède à toutes les entités : Utilisateurs, Vendeurs, Commandes, Catégories, Villes, Pays, Causes et Réclamations.</p>
+  <div class="diagram-card">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor ADM as Admin
+    participant LAYOUT as LayoutComponent (Admin)
+    participant GUARD as AuthGuard + AdminGuard
+    participant S as NgRx Store
+    participant DASH as DashboardAdminComponent
+    participant USR as ViewUsersComponent
+    participant VND as VendorsAdminComponent
+    participant ORD as OrdersAdminComponent
+    participant CAT as ViewCategoriesComponent
+    participant REC as ViewReclamationsComponent
+    participant API as Backend API
+
+    ADM->>GUARD: Accès /admin/*
+    GUARD->>S: Vérif token + rôle === 'admin'
+    alt Non autorisé
+        GUARD-->>ADM: Redirect /auth/login
+    else Autorisé
+        GUARD->>LAYOUT: Activation LayoutComponent
+        LAYOUT-->>ADM: Affichage Sidebar + Topbar Admin
+    end
+
+    rect rgb(15, 35, 70)
+      Note over ADM,API: ── DASHBOARD ADMIN ──
+      ADM->>DASH: Accès /admin/dashboard
+      DASH->>API: GET statistiques (users, orders, vendors...)
+      API-->>DASH: Données agrégées
+      DASH-->>ADM: Graphiques & KPIs
+    end
+
+    rect rgb(30, 50, 20)
+      Note over ADM,API: ── GESTION UTILISATEURS ──
+      ADM->>USR: Accès /admin/users
+      USR->>API: GET /api/users
+      API-->>USR: Liste utilisateurs
+      USR-->>ADM: Tableau paginé
+
+      ADM->>USR: Clic "Ajouter"
+      USR-->>ADM: Formulaire AddUser
+      ADM->>USR: Soumet données
+      USR->>API: POST /api/users
+      API-->>USR: 200 OK
+      USR-->>ADM: Utilisateur créé ✅
+
+      ADM->>USR: Clic "Modifier"
+      USR-->>ADM: Formulaire EditUser (pré-rempli)
+      ADM->>USR: Soumet modifications
+      USR->>API: PUT /api/users/{id}
+      API-->>USR: 200 OK
+      USR-->>ADM: Utilisateur mis à jour ✅
+    end
+
+    rect rgb(50, 20, 20)
+      Note over ADM,API: ── GESTION RÉCLAMATIONS ──
+      ADM->>REC: Accès /admin/reclamations
+      REC->>API: GET /api/reclamations
+      API-->>REC: Liste réclamations
+      REC-->>ADM: Tableau avec statuts
+
+      ADM->>REC: Clic "Répondre / Éditer"
+      REC-->>ADM: Formulaire EditReclamation
+      ADM->>REC: Soumet réponse
+      REC->>API: PUT /api/reclamations/{id}
+      API-->>REC: 200 OK
+      REC-->>ADM: Réclamation mise à jour ✅
+    end
+
+    rect rgb(50, 40, 10)
+      Note over ADM,API: ── RÉFÉRENTIELS (Catégories / Villes / Pays) ──
+      ADM->>CAT: Accès /admin/categories
+      CAT->>API: GET /api/categories
+      API-->>CAT: Liste catégories
+      ADM->>CAT: Ajouter / Modifier / Supprimer
+      CAT->>API: POST / PUT / DELETE /api/categories/{id}
+      API-->>CAT: 200 OK
+      CAT-->>ADM: Mise à jour confirmée ✅
+    end
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ONGLET 4 : ENTREPRISE / VENDOR                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tab-vendor" class="diagram-section">
+  <p class="section-title">🏪 Espace Entreprise (Vendor) — Gestion boutique</p>
+  <p class="section-desc">Le vendeur gère ses produits, commandes, messages et profil depuis son espace dédié.</p>
+  <div class="diagram-card">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor ENT as Vendor / Entreprise
+    participant LAYOUT as LayoutEntreprisesComponent
+    participant GUARD as AuthGuard
+    participant S as NgRx Store
+    participant DASH as DashboardEntComponent
+    participant PROD as ProductsEntComponent
+    participant ORD as OrdersEntComponent
+    participant MSG as MessagesEntComponent
+    participant PROF as ProfileEntComponent
+    participant REC as ViewReclamationsComponent
+    participant API as Backend API
+
+    ENT->>GUARD: Accès /ent/*
+    GUARD->>S: Vérif token (rôle vendor ou admin)
+    GUARD->>LAYOUT: Activation Layout Entreprise
+    LAYOUT-->>ENT: Sidebar Vendor + Topbar
+
+    rect rgb(15, 35, 70)
+      Note over ENT,API: ── DASHBOARD ENTREPRISE ──
+      ENT->>DASH: Accès /ent/dashboard
+      DASH->>API: GET stats (produits, commandes, revenus)
+      API-->>DASH: Données boutique
+      DASH-->>ENT: KPIs & graphiques vendeur
+    end
+
+    rect rgb(20, 50, 20)
+      Note over ENT,API: ── GESTION PRODUITS ──
+      ENT->>PROD: Accès /ent/products
+      PROD->>API: GET /api/products?vendorId=X
+      API-->>PROD: Liste produits du vendor
+      PROD-->>ENT: Catalogue produits
+
+      ENT->>PROD: Ajouter un produit
+      PROD-->>ENT: Formulaire création (nom, prix, catégorie, images)
+      ENT->>PROD: Soumet produit
+      PROD->>API: POST /api/products
+      API-->>PROD: 201 Created
+      PROD-->>ENT: Produit publié ✅
+
+      ENT->>PROD: Modifier un produit
+      PROD->>API: PUT /api/products/{id}
+      API-->>PROD: 200 OK
+      PROD-->>ENT: Produit mis à jour ✅
+    end
+
+    rect rgb(50, 30, 10)
+      Note over ENT,API: ── GESTION COMMANDES ──
+      ENT->>ORD: Accès /ent/orders
+      ORD->>API: GET /api/orders?vendorId=X
+      API-->>ORD: Commandes reçues
+      ORD-->>ENT: Liste commandes avec statuts
+
+      ENT->>ORD: Mise à jour statut commande
+      ORD->>API: PATCH /api/orders/{id}
+      API-->>ORD: 200 OK
+      ORD-->>ENT: Statut mis à jour ✅
+    end
+
+    rect rgb(40, 15, 55)
+      Note over ENT,API: ── MESSAGERIE ──
+      ENT->>MSG: Accès /ent/messages
+      MSG->>API: GET /api/messages?vendorId=X
+      API-->>MSG: Conversations
+      MSG-->>ENT: Liste messages clients
+
+      ENT->>MSG: Répond à un message
+      MSG->>API: POST /api/messages
+      API-->>MSG: 201 Created
+      MSG-->>ENT: Message envoyé ✅
+    end
+
+    rect rgb(50, 20, 20)
+      Note over ENT,API: ── RÉCLAMATIONS ──
+      ENT->>REC: Accès /ent/reclamations
+      REC->>API: GET /api/reclamations?vendorId=X
+      API-->>REC: Réclamations reçues
+      ENT->>REC: Soumet réclamation auprès admin
+      REC->>API: POST /api/reclamations
+      API-->>REC: 201 Created
+      REC-->>ENT: Réclamation soumise ✅
+    end
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ONGLET 5 : UTILISATEUR                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tab-user" class="diagram-section">
+  <p class="section-title">👤 Espace Utilisateur — Tableau de bord abonné</p>
+  <p class="section-desc">L'utilisateur connecté gère ses commandes, son profil et ses réclamations.</p>
+  <div class="diagram-card">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor USR as Utilisateur connecté
+    participant LAYOUT as LayoutUsersComponent
+    participant GUARD as AuthGuard
+    participant S as NgRx Store
+    participant DASH as DashboardUserComponent
+    participant ORD as OrdersUserComponent
+    participant PROF as ProfileUserComponent
+    participant REC as ViewReclamationsComponent
+    participant SHOP as EcommerceModule
+    participant API as Backend API
+
+    USR->>GUARD: Accès /users/*
+    GUARD->>S: Vérif token (rôle user)
+    GUARD->>LAYOUT: Activation Layout Utilisateur
+    LAYOUT-->>USR: Sidebar User + Topbar
+
+    rect rgb(15, 35, 70)
+      Note over USR,API: ── DASHBOARD UTILISATEUR ──
+      USR->>DASH: Accès /users/dashboard
+      DASH->>API: GET résumé commandes, solde points...
+      API-->>DASH: Données utilisateur
+      DASH-->>USR: Vue synthétique du compte
+    end
+
+    rect rgb(20, 50, 30)
+      Note over USR,API: ── COMMANDES ──
+      USR->>ORD: Accès /users/orders
+      ORD->>API: GET /api/orders?userId=X
+      API-->>ORD: Historique commandes
+      ORD-->>USR: Liste avec statuts (en cours / livré / annulé)
+
+      USR->>ORD: Détail commande
+      ORD->>API: GET /api/orders/{id}
+      API-->>ORD: Détails commande + produits
+      ORD-->>USR: Fiche commande détaillée
+    end
+
+    rect rgb(30, 20, 60)
+      Note over USR,API: ── PROFIL ──
+      USR->>PROF: Accès /users/profile
+      PROF->>API: GET /api/users/{id}
+      API-->>PROF: Données profil
+      PROF-->>USR: Formulaire pré-rempli
+
+      USR->>PROF: Modifie ses informations
+      PROF->>API: PUT /api/users/{id}
+      API-->>PROF: 200 OK
+      PROF-->>USR: Profil mis à jour ✅
+    end
+
+    rect rgb(50, 20, 20)
+      Note over USR,API: ── RÉCLAMATIONS ──
+      USR->>REC: Accès /users/reclamations
+      REC->>API: GET /api/reclamations?userId=X
+      API-->>REC: Mes réclamations
+      REC-->>USR: Liste réclamations + statuts
+
+      USR->>REC: Nouvelle réclamation
+      REC-->>USR: Formulaire AddReclamation
+      USR->>REC: Soumet réclamation
+      REC->>API: POST /api/reclamations
+      API-->>REC: 201 Created
+      REC-->>USR: Réclamation soumise ✅
+    end
+
+    rect rgb(15, 45, 45)
+      Note over USR,SHOP: ── ACCÈS BOUTIQUE ──
+      USR->>SHOP: Navigate /shop/products
+      SHOP->>API: GET /api/products
+      API-->>SHOP: Catalogue complet
+      SHOP-->>USR: Grille de produits
+
+      USR->>SHOP: Sélectionne un produit
+      SHOP->>API: GET /api/products/{id}
+      API-->>SHOP: Détail produit
+      SHOP-->>USR: Page produit
+
+      USR->>SHOP: Passe commande
+      SHOP->>API: POST /api/orders
+      API-->>SHOP: 201 Created
+      SHOP-->>USR: Commande confirmée 🎉
+    end
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ONGLET 6 : BOUTIQUE / ECOMMERCE                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tab-shop" class="diagram-section">
+  <p class="section-title">🛍️ Module Boutique — Flux E-Commerce complet</p>
+  <p class="section-desc">Parcours d'achat : navigation produits → détail → commande → confirmation.</p>
+  <div class="diagram-card">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor USR as Acheteur
+    participant SHOP as EcommerceModule (/shop)
+    participant PROD as ProductsComponent
+    participant DETAIL as ProductDetailComponent
+    participant CART as CartService (NgRx)
+    participant ORD as OrdersComponent
+    participant SELLER as SellersComponent
+    participant API as Backend API
+    participant NGRX as NgRx Store (Ecommerce)
+
+    USR->>SHOP: Navigate /shop/products
+    SHOP->>PROD: Chargement liste produits
+    PROD->>NGRX: dispatch fetchProducts()
+    NGRX->>API: GET /api/products
+    API-->>NGRX: Array<Product>
+    NGRX-->>PROD: products$ Observable mis à jour
+    PROD-->>USR: Grille produits (avec filtres / pagination)
+
+    USR->>PROD: Filtrer par catégorie / prix
+    PROD->>API: GET /api/products?category=X&price=Y
+    API-->>PROD: Produits filtrés
+    PROD-->>USR: Résultats filtrés
+
+    USR->>PROD: Clic sur un produit
+    PROD->>DETAIL: Navigate /shop/products/{id}
+    DETAIL->>API: GET /api/products/{id}
+    API-->>DETAIL: Détail complet produit
+    DETAIL-->>USR: Page produit (images, description, prix, vendor)
+
+    USR->>DETAIL: Clic "Ajouter au panier"
+    DETAIL->>CART: addToCart(product, qty)
+    CART->>NGRX: dispatch addToCart({ product })
+    NGRX-->>DETAIL: cart$ mis à jour
+    DETAIL-->>USR: Badge panier mis à jour 🛒
+
+    USR->>ORD: Navigate /shop/orders → Valider commande
+    ORD->>API: POST /api/orders { items, userId, total }
+    API-->>ORD: 201 Created { orderId }
+    ORD->>CART: clearCart()
+    CART->>NGRX: dispatch clearCart()
+    ORD-->>USR: Confirmation commande ✅ (#orderId)
+
+    USR->>ORD: Consulter /shop/orders-detail/{id}
+    ORD->>API: GET /api/orders/{id}
+    API-->>ORD: Détail commande + statut livraison
+    ORD-->>USR: Fiche commande complète
+
+    USR->>SELLER: Consulter /shop/sellers
+    SELLER->>API: GET /api/sellers
+    API-->>SELLER: Liste vendeurs
+    SELLER-->>USR: Catalogue vendeurs
+
+    USR->>SELLER: Détail vendeur /shop/sellers/{id}
+    SELLER->>API: GET /api/sellers/{id}
+    API-->>SELLER: Profil + produits vendeur
+    SELLER-->>USR: Page vendeur complète
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div> Composants Angular</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div> Flux positifs (succès)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div> Flux d'erreur</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> NgRx Store / Effects</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div> Guards de sécurité</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div> Backend / Fake Interceptor</div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    sequence: {
+      diagramMarginX: 20,
+      diagramMarginY: 20,
+      actorMargin: 60,
+      width: 160,
+      height: 65,
+      boxMargin: 10,
+      boxTextMargin: 5,
+      noteMargin: 10,
+      messageMargin: 45,
+      mirrorActors: false,
+      bottomMarginAdj: 10,
+      useMaxWidth: true,
+      rightAngles: false,
+      showSequenceNumbers: true
+    },
+    themeVariables: {
+      primaryColor: '#1e40af',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#3b82f6',
+      lineColor: '#64748b',
+      secondaryColor: '#1e293b',
+      tertiaryColor: '#0f172a',
+      background: '#0f172a',
+      mainBkg: '#1e293b',
+      nodeBorder: '#3b82f6',
+      clusterBkg: '#1e3a8a',
+      titleColor: '#93c5fd',
+      edgeLabelBackground: '#1e293b',
+      actorBorder: '#3b82f6',
+      actorBkg: '#1e3a8a',
+      actorTextColor: '#e2e8f0',
+      actorLineColor: '#475569',
+      signalColor: '#94a3b8',
+      signalTextColor: '#e2e8f0',
+      labelBoxBkgColor: '#1e293b',
+      labelBoxBorderColor: '#3b82f6',
+      labelTextColor: '#e2e8f0',
+      loopTextColor: '#bfdbfe',
+      noteBorderColor: '#f59e0b',
+      noteBkgColor: '#78350f',
+      noteTextColor: '#fde68a',
+      activationBorderColor: '#7c3aed',
+      activationBkgColor: '#4c1d95',
+      sequenceNumberColor: '#1e3a8a'
+    }
+  });
+
+  function showTab(name) {
+    document.querySelectorAll('.diagram-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>
