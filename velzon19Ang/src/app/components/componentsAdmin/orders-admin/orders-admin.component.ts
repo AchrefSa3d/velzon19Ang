@@ -28,14 +28,14 @@ export class OrdersAdminComponent implements OnInit {
 
   loadOrders(): void {
     this.loading = true;
-    this.api.getOrders().subscribe({
+    this.api.getAdminOrders().subscribe({
       next: (data: any[]) => {
         this.allOrders = data.map(o => ({
           id:      o.id,
-          client:  o.client_name || o.email || 'Client',
-          vendor:  '—',
+          client:  o.client_name || o.client_email || 'Client',
+          email:   o.client_email || '',
+          phone:   o.client_phone || '',
           ville:   o.shipping_address || '—',
-          product: '—',
           total:   o.total_amount || 0,
           date:    new Date(o.created_at).toLocaleDateString('fr-FR'),
           status:  this.mapStatus(o.status),
@@ -80,7 +80,7 @@ export class OrdersAdminComponent implements OnInit {
 
   changeStatus(order: any, status: string) {
     order.status = status;
-    this.api.updateOrderStatus(order.apiId, this.statusToApi(status)).subscribe();
+    this.api.updateAdminOrderStatus(order.apiId, this.statusToApi(status)).subscribe();
     this.applyFilter();
   }
 

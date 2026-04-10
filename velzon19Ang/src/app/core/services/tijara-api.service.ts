@@ -156,7 +156,17 @@ export class TijaraApiService {
   }
 
   getAdminOrders(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/orders`, { headers: this.getHeaders() });
+    return this.http.get(`${this.apiUrl}/admin/orders`, { headers: this.getHeaders() });
+  }
+
+  updateAdminOrderStatus(id: number, status: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/admin/orders/${id}/status`, { status }, { headers: this.getHeaders() });
+  }
+
+  getAdminAllProducts(approvalStatus?: string): Observable<any> {
+    const options: any = { headers: this.getHeaders() };
+    if (approvalStatus) options.params = { approval_status: approvalStatus };
+    return this.http.get(`${this.apiUrl}/admin/all-products`, options);
   }
 
   // ─── Admin ──────────────────────────────────────────────
