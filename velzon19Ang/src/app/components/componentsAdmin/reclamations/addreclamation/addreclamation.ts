@@ -42,7 +42,7 @@ export class Addreclamation {
 
   constructor(private router: Router,  private el: ElementRef,
     private renderer: Renderer2 , public translate  : TranslateService, private formBuilder: UntypedFormBuilder) {
-    //translate.setDefaultLang('en');
+    //translate.setDefaultLang('fr');
    
   }
 

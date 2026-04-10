@@ -11,7 +11,8 @@ export class AppComponent {
   title = 'velzon';
 
   constructor( public translate  : TranslateService) {
-    //translate.setDefaultLang('en');
+    translate.setDefaultLang('fr');
+    translate.use('fr');
         this.translate.onLangChange.subscribe((event) => {
           this.updateDirection(event.lang);
         });

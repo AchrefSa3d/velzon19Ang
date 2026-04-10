@@ -7,18 +7,17 @@
   "MENUITEMS": {
     "MENU": {
       "TEXT": "MENU",
-      "Reclamation":  " mes Reclamations ",
+      "Reclamation": " mes Reclamations ",
       "Add": " Ajouter ",
       "Edit": " Edite ",
       "View": " Affichage"
-     
     },
     "USERS": {
       "TEXT": "Utilisateurs",
-      "Users" : "utilisateurs",
-      "User" : "utilisateur",
+      "Users": "utilisateurs",
+      "User": "utilisateur",
       "FirstName": "prenom",
-      "LastName":  "Nom",
+      "LastName": "Nom",
       "Email": "Email",
       "Roles": "Roles",
       "Active": "Active",
@@ -123,30 +122,6 @@
       }
     },
     "PAGES": {
-      "TEXT": "pages"
-    },
-    "AUTHENTICATION": {
-      "TEXT": "Authentification",
-      "LIST": {
-        "BASIC": "De base",
-        "COVER": "Couverture",
-        "SIGNIN": "S'identifier",
-        "SIGNUP": "S'inscrire",
-        "PASSWORDRESET": "Réinitialisation du mot de passe",
-        "PASSWORDCREATE": "Créer un mot de passe",
-        "LOCKSCREEN": "Écran verrouillé",
-        "LOGOUT": "Se déconnecter",
-        "SUCCESSMESSAGE": "Message de réussite",
-        "TWOSTEPVERIFICATION": "Vérification en deux étapes",
-        "ERRORS": "les erreurs",
-        "404BASIC": "404 de base",
-        "404COVER": "404 Couverture",
-        "404ALT": "404 Autre",
-        "500": "500",
-        "OFFLINE": "Hors ligne"
-      }
-    },
-    "PAGES": {
       "TEXT": "pages",
       "LIST": {
         "STARTER": "Entrée",
@@ -168,6 +143,27 @@
         "BLOGLIST": "Vue en liste",
         "BLOGOVERVIEW": "Aperçu",
         "BLOGGRID": "Vue en grille"
+      }
+    },
+    "AUTHENTICATION": {
+      "TEXT": "Authentification",
+      "LIST": {
+        "BASIC": "De base",
+        "COVER": "Couverture",
+        "SIGNIN": "S'identifier",
+        "SIGNUP": "S'inscrire",
+        "PASSWORDRESET": "Réinitialisation du mot de passe",
+        "PASSWORDCREATE": "Créer un mot de passe",
+        "LOCKSCREEN": "Écran verrouillé",
+        "LOGOUT": "Se déconnecter",
+        "SUCCESSMESSAGE": "Message de réussite",
+        "TWOSTEPVERIFICATION": "Vérification en deux étapes",
+        "ERRORS": "les erreurs",
+        "404BASIC": "404 de base",
+        "404COVER": "404 Couverture",
+        "404ALT": "404 Autre",
+        "500": "500",
+        "OFFLINE": "Hors ligne"
       }
     },
     "LANDING": {
@@ -366,6 +362,24 @@
           }
         }
       }
+    },
+    "COMMUNITY": {
+      "TEXT": "Communauté"
+    },
+    "ANNONCES": {
+      "TEXT": "Annonces & Deals"
+    },
+    "MODERATION": {
+      "TEXT": "Modération"
+    },
+    "STATS": {
+      "TEXT": "Statistiques"
+    },
+    "ANALYTICS": {
+      "TEXT": "Analytique"
+    },
+    "MY_ACCOUNT": {
+      "TEXT": "Mon Compte"
     }
   }
 }
